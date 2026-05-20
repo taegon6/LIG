@@ -29,26 +29,35 @@ def trigger_scenario(name: str, intensity: float) -> None:
 
 st.set_page_config(page_title="Aegis-Swarm", page_icon="A", layout="wide")
 st.title("Aegis-Swarm")
-st.caption("Safe local Red-Blue self-play simulation for defense-style mission operations")
+st.caption("DAH-style safe Red-Blue self-play dashboard for mission cyber resilience")
 
 try:
     health = api_get("/health")
     mission = api_get("/mission/status")
     vehicle = api_get("/vehicle/state")
+    adapter = api_get("/adapter/status")
     logs = api_get("/logs/recent?limit=25")
 except requests.RequestException as exc:
-    st.error(f"API 연결 실패: {exc}")
+    st.error(f"API connection failed: {exc}")
     st.stop()
 
 latest_score = logs["scores"][0] if logs["scores"] else {}
 commander_mode = mission.get("commander_mode", "BALANCED")
 
 cols = st.columns(5)
-cols[0].metric("Current SLA", f"{health['sla_score']:.2f}%")
-cols[1].metric("Commander Mode", commander_mode)
-cols[2].metric("Attack Score", latest_score.get("attack_score", "-"))
-cols[3].metric("Defense Score", latest_score.get("defense_score", "-"))
-cols[4].metric("Utility", latest_score.get("total_utility", "-"))
+cols[0].metric("Attack Score", latest_score.get("attack_score", "-"))
+cols[1].metric("Defense Score", latest_score.get("defense_score", "-"))
+cols[2].metric("SLA Score", f"{health['sla_score']:.2f}%")
+cols[3].metric("Total Utility", latest_score.get("total_utility", "-"))
+cols[4].metric("Commander Mode", commander_mode)
+
+st.subheader("DAH Scoring View")
+dah_cols = st.columns(4)
+dah_cols[0].metric("Adapter", adapter["adapter_mode"])
+dah_cols[1].metric("Ready", "YES" if adapter["ready"] else "NO")
+dah_cols[2].metric("External Access", "YES" if adapter["external_access"] else "NO")
+dah_cols[3].metric("Availability/SLA", f"{health['sla_score']:.2f}%")
+st.caption(adapter["description"])
 
 left, right = st.columns([1, 1])
 with left:
@@ -80,6 +89,9 @@ with scenario_cols[4]:
 if "last_result" in st.session_state:
     st.subheader("Latest Result")
     st.json(st.session_state["last_result"])
+    if isinstance(st.session_state["last_result"], dict) and "strategy_notes" in st.session_state["last_result"]:
+        st.subheader("Strategy Notes")
+        st.json(st.session_state["last_result"]["strategy_notes"])
 
 tab_events, tab_actions, tab_scores = st.tabs(["Recent Events", "Blue Decisions", "Scores"])
 with tab_events:

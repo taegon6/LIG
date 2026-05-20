@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import FastAPI, Query
 
+from adapters import get_adapter
 from agents.blue_agent import BlueAgent
 from agents.commander_agent import CommanderAgent
 from agents.red_agent import RedAgent
@@ -26,8 +27,54 @@ MISSION_STATE = MissionState()
 COMMANDER_MODE = "BALANCED"
 
 
+def mission_state_dict() -> dict[str, Any]:
+    return MISSION_STATE.model_dump()
+
+
+def active_adapter():
+    return get_adapter(mission_state_dict)
+
+
 def current_sla(limit: int = 50) -> float:
     return calculate_sla(db.recent_events(limit))
+
+
+def build_dah_scores(score: dict[str, Any] | None = None) -> dict[str, Any]:
+    latest = score or (db.recent_scores(1)[0] if db.recent_scores(1) else {})
+    return {
+        "attack_score": latest.get("attack_score", 0.0),
+        "defense_score": latest.get("defense_score", 0.0),
+        "sla_score": latest.get("sla_score", current_sla()),
+        "total_utility": latest.get("total_utility", 0.0),
+        "evaluation_focus": "DAH-style attack, defense, and availability/SLA balance",
+    }
+
+
+def commander_strategy_note(mode: str, sla_score: float) -> str:
+    if mode == "RECOVERY_FIRST":
+        return f"SLA is {sla_score:.2f}; commander prioritizes recovery before aggressive blocking."
+    if mode == "DEFENSE_HARDENING":
+        return "Recent defense quality is weak; commander asks agents to harden response."
+    if mode == "RED_EXPLORATION":
+        return "Recent red pressure is low; commander allows broader safe scenario exploration."
+    return "SLA and score history are stable; commander keeps a balanced self-play mode."
+
+
+def red_strategy_note(mode: str, sla_score: float, event_type: str) -> str:
+    if mode == "RECOVERY_FIRST":
+        return f"Red generated lower-intensity {event_type} because SLA recovery is the priority."
+    if mode == "DEFENSE_HARDENING":
+        return f"Red generated a stronger safe {event_type} to test Blue hardening."
+    if mode == "RED_EXPLORATION":
+        return f"Red varied the safe scenario set with {event_type} to broaden coverage."
+    return f"Red generated medium-intensity safe {event_type} for balanced self-play."
+
+
+def blue_strategy_note(decision: BlueDecision, sla_score: float) -> str:
+    return (
+        f"Blue selected {decision.selected_action} at {decision.risk_level} risk "
+        f"with SLA {sla_score:.2f}; expected SLA impact is {decision.expected_sla_impact}."
+    )
 
 
 def update_mission_state_from_event(event: dict[str, Any]) -> None:
@@ -50,6 +97,11 @@ def update_mission_state_from_event(event: dict[str, Any]) -> None:
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok", sla_score=current_sla(), mission_status=MISSION_STATE)
+
+
+@app.get("/adapter/status")
+def adapter_status() -> dict[str, Any]:
+    return active_adapter().adapter_status()
 
 
 @app.get("/mission/status")
@@ -126,6 +178,7 @@ def blue_decide() -> BlueDecision:
 @app.post("/selfplay/round")
 def selfplay_round() -> dict[str, Any]:
     global MISSION_STATE, COMMANDER_MODE
+    adapter = active_adapter()
     previous_sla = current_sla()
     recent_scores = db.recent_scores(10)
     recent_actions = db.recent_actions(10)
@@ -141,19 +194,31 @@ def selfplay_round() -> dict[str, Any]:
     sla_after_event = current_sla()
     blue_decision = BlueAgent().decide(events, sla_after_event)
     action_record = db.insert_action(build_action_record(blue_decision).model_dump())
+    adapter_action_result = adapter.submit_blue_action(blue_decision.model_dump())
     action_result = apply_action_to_state(blue_decision, MISSION_STATE.model_dump())
     MISSION_STATE = MissionState(**action_result["mission_state"])
 
     score = score_round(saved_event, blue_decision.model_dump(), current_sla(), previous_sla_score=previous_sla)
     saved_score = db.insert_score({"timestamp": now_iso(), **score})
+    dah_scores = build_dah_scores(saved_score)
+    strategy_notes = {
+        "commander": commander_strategy_note(COMMANDER_MODE, previous_sla),
+        "red": red_strategy_note(COMMANDER_MODE, previous_sla, saved_event["event_type"]),
+        "blue": blue_strategy_note(blue_decision, sla_after_event),
+        "adapter": adapter_action_result["description"],
+    }
 
     return {
+        "adapter_mode": adapter.adapter_status()["adapter_mode"],
         "commander_mode": COMMANDER_MODE,
         "red_event": saved_event,
         "blue_decision": blue_decision.model_dump(),
         "action_result": action_result,
+        "adapter_action_result": adapter_action_result,
         "action_log": action_record,
         "sla_score": saved_score["sla_score"],
+        "dah_scores": dah_scores,
+        "strategy_notes": strategy_notes,
         "score": saved_score,
         "mission_state": MISSION_STATE.model_dump(),
     }
