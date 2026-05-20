@@ -48,6 +48,8 @@ FastAPI Mission Service
 - `adapters/`: 로컬 시뮬레이터와 향후 대회 환경 연결 인터페이스
 - `dashboard/`: Streamlit DAH 점수판
 - `docs/report.md`: DAH 예선 제출 보고서 초안
+- `docs/submission_checklist.md`: 공식 일정/제출물 기반 체크리스트
+- `docs/demo_script.md`: 3분/5분 시연 스크립트
 
 ## 4. 안전성 선언
 
@@ -137,3 +139,10 @@ pytest
 ## 9. 본선 확장 계획
 
 본선 환경이 공개되면 `CompetitionStubAdapter`를 실제 DAH runtime adapter로 교체합니다. 에이전트 판단 루프는 유지하고, 이벤트 수집/방어 액션 제출/점수 조회만 adapter에서 연결합니다. 이렇게 하면 로컬 시뮬레이션과 대회 환경을 같은 인터페이스로 운영할 수 있습니다.
+
+## 10. 제출 준비 문서
+
+- [예선 제출 보고서 초안](docs/report.md)
+- [제출 준비 체크리스트](docs/submission_checklist.md)
+- [데모 스크립트](docs/demo_script.md)
+- [제출 패키징 안내](docs/submission_package.md)
