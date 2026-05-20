@@ -1,0 +1,23 @@
+services:
+  api:
+    build: .
+    command: uvicorn mission_service.app:app --host 0.0.0.0 --port 8000
+    environment:
+      - AEGIS_DB_PATH=/app/data/aegis_swarm.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - aegis_data:/app/data
+
+  dashboard:
+    build: .
+    command: streamlit run dashboard/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    environment:
+      - AEGIS_API_URL=http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  aegis_data:
