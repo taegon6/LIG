@@ -1,0 +1,6 @@
+sequence_name,event_count,final_sla,min_sla,recovery_success,blue_action_accuracy,false_positive_rate,total_utility
+MIXED_TRAFFIC_AUTH,4,100.0,100.0,1.0,1.0,0.0,71.35
+SLOW_BURN_DEGRADATION,4,100.0,0.0,1.0,1.0,0.0,66.47
+TELEMETRY_DRIFT,4,100.0,0.0,1.0,1.0,0.0,70.19
+COMMAND_BURST,4,100.0,100.0,1.0,1.0,0.0,71.5
+NOISE_THEN_ATTACK,4,100.0,100.0,1.0,1.0,0.0,71.67

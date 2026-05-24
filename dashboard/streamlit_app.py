@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -9,6 +10,7 @@ import streamlit as st
 
 
 API_URL = os.getenv("AEGIS_API_URL", "http://localhost:8000").rstrip("/")
+REPORTS_DIR = Path(os.getenv("AEGIS_REPORTS_DIR", "reports"))
 
 
 EVENT_LABELS = {
@@ -170,6 +172,13 @@ def scenario_frame(stats: dict[str, Any]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def stress_summary_frame() -> pd.DataFrame:
+    path = REPORTS_DIR / "stress_summary.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path)
+
+
 def latest_round_summary(result: dict[str, Any]) -> None:
     red_event = result.get("red_event", {})
     blue = result.get("blue_decision", {})
@@ -325,6 +334,16 @@ with memory_cols[1]:
         st.bar_chart(scenario_df.set_index("scenario")[["red_success_rate", "blue_success_rate"]])
     else:
         st.info("아직 scenario stats가 없습니다.")
+
+st.divider()
+
+st.subheader("Stress Scenario Evaluation")
+stress_df = stress_summary_frame()
+if not stress_df.empty:
+    st.caption("Safe local event sequences only. No external target interaction.")
+    st.dataframe(stress_df, use_container_width=True, hide_index=True)
+else:
+    st.caption("Run `python scripts/run_stress_scenarios.py` to generate stress scenario evidence.")
 
 st.divider()
 

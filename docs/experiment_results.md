@@ -106,6 +106,24 @@ python scripts/run_multi_seed_evaluation.py --seeds 1,2,3,4,5 --rounds 100
 
 The multi-seed run keeps post-action SLA and rolling SLA stable at 100.000 across seeds. Scenario entropy varies because adaptive self-play deliberately changes scenario pressure based on recent outcomes; this reinforces why the balanced scenario evaluation remains a separate judging artifact. False positives stayed at 0.000, and each scenario observed across the five seeds retained action accuracy of 1.000.
 
+## Safe Stress Scenario Pack
+
+The stress scenario pack evaluates short sequences of existing safe event types only. It does not introduce new attack primitives; each step is still generated through the same local simulator event schema and followed by Blue decision, simulated action, `RECOVERY_HEALTH_CHECK`, and v2 scoring.
+
+```bash
+python scripts/run_stress_scenarios.py --seed 42
+```
+
+| Sequence | Event Count | Final SLA | Min Event SLA | Recovery Success | Blue Action Accuracy | False Positive Rate | Avg Utility |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| MIXED_TRAFFIC_AUTH | 4 | 100.00 | 100.00 | 1.000 | 1.000 | 0.000 | 71.35 |
+| SLOW_BURN_DEGRADATION | 4 | 100.00 | 0.00 | 1.000 | 1.000 | 0.000 | 66.47 |
+| TELEMETRY_DRIFT | 4 | 100.00 | 0.00 | 1.000 | 1.000 | 0.000 | 70.19 |
+| COMMAND_BURST | 4 | 100.00 | 100.00 | 1.000 | 1.000 | 0.000 | 71.50 |
+| NOISE_THEN_ATTACK | 4 | 100.00 | 100.00 | 1.000 | 1.000 | 0.000 | 71.67 |
+
+`SLOW_BURN_DEGRADATION` and `TELEMETRY_DRIFT` intentionally include steps that can drop instant event SLA before recovery. Final SLA returns to 100.00 for every sequence, while false positives remain 0.000. This gives judges a compact view of Blue policy behavior under clustered safe anomalies rather than isolated single events.
+
 ## Interpretation for DAH Preliminary Report
 
 The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% while still exercising all six safe simulated scenario types. The service degradation scenario caused the clearest SLA impact, with an average SLA drop of 20.94 points and average recovery delta of 22.22 points. This demonstrates that the post-action `RECOVERY_HEALTH_CHECK` model is measurable rather than decorative.
@@ -122,3 +140,5 @@ Generated evidence files:
 - `reports/balanced_scenario_summary.csv`
 - `reports/multi_seed_summary.csv`
 - `reports/multi_seed_scenario_summary.csv`
+- `reports/stress_round_metrics.csv`
+- `reports/stress_summary.csv`
