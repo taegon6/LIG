@@ -1,233 +1,270 @@
-# Aegis-Swarm DAH 2026 예선 제출 보고서 초안
+# Aegis-Swarm v2 DAH Preliminary Report Draft
 
-확인 기준: DAH 2026 공식 홈페이지 `https://dah.ai.kr/guide`, `https://dah.ai.kr/schedule`  
-확인일: 2026-05-20
+## Problem Definition
 
-## 1. 프로젝트 개요
+Aegis-Swarm v2 is a local, safe Red-Blue-Commander self-play simulator for defense-style cyber competition preparation. The project focuses on mission availability under simulated anomaly pressure, not on real attack execution.
 
-Aegis-Swarm은 DAH 2026의 "AI 공격 에이전트 vs AI 방어 에이전트" 구도에 맞춘 안전한 Red-Blue Self-Play 프레임워크다. 방산 임무 환경에서 보안 대응은 탐지 정확도뿐 아니라 임무 지속성과 SLA를 함께 고려해야 한다. 본 프로젝트는 UAV/UGV 임무 서비스를 로컬로 시뮬레이션하고, Red Agent가 안전한 이상 이벤트를 생성하며, Blue Agent가 SLA-aware policy로 방어 액션을 선택하는 구조를 제공한다.
+The core problem is that defensive cyber agents in mission systems cannot optimize only for blocking suspicious behavior. A UAV/UGV-style mission service also needs stable latency, active mission status, and recoverable service state. A defense action that is too aggressive can harm the mission as much as the simulated anomaly.
 
-본 MVP는 실제 공격 도구가 아니다. 모든 Red behavior는 SQLite에 기록되는 로컬 시뮬레이션 이벤트이며 외부 시스템 공격, 스캔, 취약점 악용, 자격증명 공격, 악성코드 행위를 수행하지 않는다.
+This MVP asks three practical questions:
 
-## 2. 문제 정의
+- Can a Red Agent generate safe local anomaly events that exercise defense decisions?
+- Can a Blue Agent select an action that balances risk reduction with SLA and mission continuity?
+- Can a Commander Agent adjust the self-play mode when recovery, hardening, or exploration is more important?
 
-방산 임무 서비스에서는 "무조건 차단"이 항상 좋은 방어가 아니다. 강한 차단은 임무 지연, telemetry 단절, 서비스 재시작으로 이어져 SLA를 떨어뜨릴 수 있다. 반대로 SLA만 보호하면 공격 또는 이상 징후에 대한 대응이 늦어진다.
+## Why SLA-Aware Defense Matters
 
-Aegis-Swarm은 다음 질문에 답하는 것을 목표로 한다.
+In mission-oriented systems, availability is part of security. A simulated `SERVICE_DEGRADATION` should trigger recovery-oriented behavior, while a simulated `AUTH_ANOMALY` should trigger token containment instead of restarting the mission service. Aegis-Swarm therefore scores both defensive correctness and post-action SLA.
 
-- Red anomaly가 발생했을 때 Blue Agent가 어떤 신호를 근거로 위험도를 계산하는가?
-- 방어 액션이 SLA와 임무 지속성에 어떤 영향을 주는가?
-- Commander Agent가 보안 강화와 복구 우선순위를 어떻게 조정하는가?
-- 라운드별 scoring을 통해 방어 의사결정을 어떻게 설명 가능하게 만들 수 있는가?
+The SLA model checks four local fields from simulated events:
 
-## 3. 공식 제출 요구사항 대응
+- `status_code < 500`
+- `latency_ms < 500`
+- `mission_status == ACTIVE`
+- `sla_ok == true`
 
-공식 안내에서 확인한 예선 준비 관점은 다음과 같다.
+This keeps the evaluation concrete and explainable. The system is not trying to prove real-world cyber exploitation capability. It is testing whether a defense policy can respond to safe local signals while keeping a mission service available.
 
-- 팀 구성: 팀당 최대 4인
-- 접수 마감: 2026-06-14 23:59
-- 예선 보고서 제출 기간: 2026-06-15부터 2026-07-10 23:59까지
-- 예선 보고서 형식: 통합 PDF 1부, 최대 50MB
-- 부가자료: 운영팀이 접근 가능한 링크 제출 가능
-- 학생 증빙: 재학증명서 또는 교수추천서, 전원 통합 PDF 1부, 최대 50MB
-- 본선 진출팀 발표: 2026-07-31
-- 본선 및 시상식: 2026-08-21
-
-Aegis-Swarm 제출 패키지는 위 기준에 맞춰 다음 산출물로 정리한다.
-
-- 예선 보고서 PDF: 본 문서를 기반으로 작성
-- 코드 저장소 또는 압축 파일: FastAPI, Streamlit, SQLite, pytest, Docker Compose 포함
-- 부가자료 링크: 데모 영상, 스크린샷, 실행 로그, GitHub 또는 공유 드라이브
-- 증빙 PDF: 팀원 자격에 따라 별도 준비
-
-## 4. 아키텍처
+## System Architecture
 
 ```text
 FastAPI Mission Service
-  ├─ Red Agent
-  ├─ Blue Agent
-  ├─ Commander Agent
-  ├─ SQLite event/action/score tables
-  ├─ Competition Adapter
-  │   ├─ LocalSimulatorAdapter
-  │   └─ CompetitionStubAdapter
-  └─ Streamlit DAH Scoring Dashboard
+  -> SQLite events/actions/scores/scenario_stats
+  -> Red Agent: safe local anomaly event generation
+  -> Blue Agent: modular risk and SLA-aware policy
+  -> Commander Agent: mode selection for self-play curriculum
+  -> Action Registry: simulated local state transitions only
+  -> Scoring Model: attack, defense, SLA, recovery, false positive, utility
+  -> Competition Adapter
+       -> LocalSimulatorAdapter
+       -> CompetitionStubAdapter
+  -> Streamlit Dashboard
 ```
 
-### Mission Service
+The FastAPI backend exposes health, mission state, telemetry, logs, scenario simulation, Blue decision, and `/selfplay/round` endpoints. The Streamlit dashboard displays SLA, Commander mode, DAH-style scores, recent events, Blue decisions, and manual scenario buttons.
 
-FastAPI 기반 로컬 API 서버다. `/health`, `/mission/status`, `/vehicle/state`, `/telemetry`, `/simulate/event`, `/selfplay/round`를 제공한다. 모든 명령은 시뮬레이션 상태 전이만 수행하며 시스템 명령을 실행하지 않는다.
+SQLite stores three main evidence streams:
 
-### Red Agent
+- `events`: simulated Red events and post-action recovery checks
+- `actions`: Blue Agent decisions and rationale
+- `scores`: v2 scoring outputs for each evaluated round
 
-Red Agent는 안전한 이벤트만 생성한다. 지원 이벤트는 `TRAFFIC_SPIKE`, `AUTH_ANOMALY`, `TELEMETRY_INCONSISTENCY`, `SERVICE_DEGRADATION`, `MISSION_COMMAND_ANOMALY`, `LOG_NOISE`다. Commander mode와 현재 SLA에 따라 이벤트 강도를 조정한다.
+## Red Agent Safe Local Scenario Generation
 
-### Blue Agent
+The Red Agent is safe by design. It never scans, exploits, brute-forces, steals credentials, runs malware, or interacts with external targets. It only generates local simulated events from the approved scenario list:
 
-Blue Agent는 최근 이벤트를 읽고 다음 component score를 계산한다.
+- `TRAFFIC_SPIKE`
+- `AUTH_ANOMALY`
+- `TELEMETRY_INCONSISTENCY`
+- `SERVICE_DEGRADATION`
+- `MISSION_COMMAND_ANOMALY`
+- `LOG_NOISE`
 
-- auth_failure_score
-- traffic_spike_score
-- latency_score
-- telemetry_inconsistency_score
-- error_rate_score
+The current Red Agent uses an epsilon-greedy heuristic, not full reinforcement learning. With `epsilon=0.2`, it sometimes explores a random safe scenario and otherwise prefers scenarios that previously produced higher simulated Red success or SLA drop. Commander mode and current SLA also constrain event intensity. For example, `RECOVERY_FIRST` lowers event intensity to avoid compounding an already degraded mission state.
 
-이후 risk score를 계산하고 SLA-aware policy에 따라 `OBSERVE_ONLY`, `APPLY_RATE_LIMIT`, `ISOLATE_TELEMETRY_STREAM`, `RESTART_SERVICE`, `ROLLBACK_VERSION` 등 방어 액션을 선택한다.
+## Blue Agent Modular Policy
 
-### Commander Agent
+The Blue Agent is a modular rule-based/adaptive defender. It does not perform autonomous hacking and does not execute system-level blocking commands. It observes recent local events and computes component scores:
 
-Commander Agent는 SLA와 최근 점수를 바탕으로 `BALANCED`, `RECOVERY_FIRST`, `DEFENSE_HARDENING`, `RED_EXPLORATION` 중 하나를 선택한다. 이를 통해 self-play가 단순 랜덤 이벤트가 아니라 점수와 임무 상태를 반영하는 전략 루프로 보이게 한다.
+- `auth_failure_score`
+- `traffic_spike_score`
+- `latency_score`
+- `telemetry_inconsistency_score`
+- `error_rate_score`
 
-### Competition Adapter
+These are combined into a risk score:
 
-본선 환경이 공개되면 `CompetitionStubAdapter`를 실제 대회 API adapter로 교체한다. 현재는 외부 호출을 하지 않는 stub이며, 로컬 실행 기본값은 `LocalSimulatorAdapter`다.
+```text
+risk_score =
+  0.3 * auth_failure_score
++ 0.2 * traffic_spike_score
++ 0.2 * latency_score
++ 0.2 * telemetry_inconsistency_score
++ 0.1 * error_rate_score
+```
 
-## 5. DAH 평가축 대응
+The policy prioritizes the latest unrecovered active event, treating `RECOVERY_HEALTH_CHECK` as the boundary for already-handled history. This prevents stale events from dominating the newest decision.
 
-Aegis-Swarm은 DAH식 평가 관점을 다음처럼 모델링한다.
+Action examples:
 
-- Attack Score: Red anomaly severity와 시나리오 강도
-- Defense Score: Blue action이 이벤트 유형에 적절한지
-- SLA Score: status code, latency, mission status, sla_ok 기반 가용성
-- Recovery Score: 이전 SLA 대비 회복성
-- False Positive Penalty: 정상 또는 노이즈 이벤트에 과잉 대응했을 때의 비용
-- Total Utility: 방어, 공격, SLA, 복구, false positive를 결합한 통합 점수
+- `TRAFFIC_SPIKE` -> `APPLY_RATE_LIMIT`
+- `AUTH_ANOMALY` -> `BLOCK_SUSPICIOUS_TOKEN`
+- `TELEMETRY_INCONSISTENCY` -> `ISOLATE_TELEMETRY_STREAM`
+- `SERVICE_DEGRADATION` -> `RESTART_SERVICE` or `ROLLBACK_VERSION`
+- `MISSION_COMMAND_ANOMALY` -> `DEPLOY_DECOY` or `ESCALATE_ALERT`
+- `LOG_NOISE` -> `OBSERVE_ONLY`
 
-`/selfplay/round` 응답에는 `dah_scores`와 `strategy_notes`가 포함되어 심사자가 각 라운드의 판단 근거를 확인할 수 있다.
+All actions are simulated local state transitions and action logs. They do not change firewall rules, call external systems, or execute operating system commands.
 
-## 6. 구체적 시뮬레이션 설계
+## Commander Agent
 
-Aegis-Swarm의 시뮬레이션은 단순 로그 생성이 아니라 "임무 서비스 상태 - Red anomaly - Blue 방어 판단 - Commander 운영 모드 - 점수 변화"가 한 라운드 안에서 연결되는 구조다. 심사자는 dashboard 또는 `/selfplay/round` API를 통해 한 번의 라운드가 어떤 근거로 진행됐는지 확인할 수 있다.
+The Commander Agent balances competition pressure with mission availability. It chooses one of four modes:
 
-### 라운드 진행 흐름
+- `BALANCED`
+- `RECOVERY_FIRST`
+- `DEFENSE_HARDENING`
+- `RED_EXPLORATION`
 
-1. Mission Service가 현재 UGV 임무 상태를 제공한다. 상태에는 mission status, position, battery, communication status, SLA 상태가 포함된다.
-2. Commander Agent가 최근 SLA score, defense score, red success rate를 보고 운영 모드를 선택한다.
-3. Red Agent는 Commander mode에 따라 안전한 로컬 anomaly event를 생성한다.
-4. Event Generator는 event type, severity, latency, status code, mission status, sla_ok를 포함한 이벤트를 SQLite에 기록한다.
-5. Blue Agent는 최근 이벤트를 읽고 component score를 계산한다.
-6. Blue Agent는 risk score와 SLA를 동시에 고려해 방어 액션을 선택한다.
-7. Action Registry는 실제 시스템 명령을 실행하지 않고 로컬 mission state만 변경한다.
-8. Scoring 모듈이 attack, defense, SLA, recovery, false positive penalty, total utility를 계산한다.
+Decision logic:
 
-### 시뮬레이션 입력 신호
+- If SLA is below 90, choose `RECOVERY_FIRST`.
+- If recent Blue defense scores are weak, choose `DEFENSE_HARDENING`.
+- If recent Red success rate is low, choose `RED_EXPLORATION`.
+- Otherwise, choose `BALANCED`.
 
-Blue Agent가 보는 입력은 다음처럼 방산 임무 서비스에서 관찰 가능한 운영 신호로 제한된다.
+This creates a simple curriculum loop. It is explainable and deterministic enough for preliminary judging, while still showing adaptive behavior over multiple rounds.
 
-- latency_ms: 임무 API 응답 지연
-- status_code: 서비스 오류율 추정
-- mission_status: ACTIVE, DEGRADED 등 임무 지속 상태
-- sla_ok: 현재 라운드의 SLA 만족 여부
-- event_type: 안전한 anomaly category
-- severity: Red Agent가 생성한 시뮬레이션 강도
-- recent score history: 최근 defense score와 SLA score
+## Scenario Memory
 
-### 상태 전이 예시
+Aegis-Swarm stores scenario-level memory in SQLite. For each event type, it tracks attempts, Red success count, Blue success count, average SLA drop, average recovery delta, false positives, and the most effective Blue action.
 
-Traffic spike 라운드에서는 latency가 상승하지만 mission_status가 ACTIVE로 유지된다. Blue Agent가 `APPLY_RATE_LIMIT`를 선택하면 Action Registry는 "향후 traffic impact 감소"를 의미하는 로컬 상태만 기록한다. 실제 네트워크 rate limit 명령은 실행하지 않는다.
+The Red Agent can use this scenario memory to bias safe scenario selection. The Blue Agent can also use it to harden responses when recent Blue outcomes are poor. This is a lightweight adaptive memory layer, not a neural RL policy.
 
-Telemetry inconsistency 라운드에서는 mission_status는 ACTIVE지만 telemetry 신뢰도가 낮아진 상황을 표현한다. Blue Agent가 `ISOLATE_TELEMETRY_STREAM`을 선택하면 anomaly가 containment된 것으로 기록하고, scoring은 telemetry event에 맞는 대응을 defense score에 반영한다.
+## Scoring Model
 
-Service degradation 라운드에서는 latency와 status code가 동시에 악화되어 SLA score가 낮아질 수 있다. 이때 Commander Agent는 `RECOVERY_FIRST`로 전환하고, Blue Agent는 차단형 액션보다 `RESTART_SERVICE` 또는 `ROLLBACK_VERSION` 같은 복구 중심 액션을 우선한다. 이 전이 덕분에 "보안 대응이 임무 가용성을 망치지 않는가"를 데모에서 확인할 수 있다.
+The v2 scoring model is deterministic and explainable. Each round produces:
 
-## 7. AI 에이전트의 장점 및 차별점
+- `red_success_score`
+- `blue_defense_score`
+- `sla_preservation_score`
+- `recovery_score`
+- `false_positive_penalty`
+- `action_cost`
+- `total_utility`
 
-Aegis-Swarm의 핵심 장점은 공격 탐지 자체보다 "임무 지속성을 고려한 방어 의사결정"에 있다. 예선 MVP는 복잡한 black-box ML 대신 설명 가능한 rule-based self-play로 구성했지만, 구조적으로는 본선 환경의 로그와 score API를 연결할 수 있게 설계되어 있다.
+The utility formula rewards defense, SLA preservation, and recovery, while penalizing Red success, false positives, and action cost:
 
-### SLA-aware Blue Agent
+```text
+total_utility =
+  0.35 * blue_defense_score
+- 0.25 * red_success_score
++ 0.25 * sla_preservation_score
++ 0.15 * recovery_score
+- 0.20 * false_positive_penalty
+- 0.10 * action_cost
+```
 
-Blue Agent는 위험도가 높다고 항상 가장 강한 대응을 선택하지 않는다. 동일한 anomaly라도 SLA가 충분히 안정적이면 containment나 rate limit을 선택하고, SLA가 이미 나쁘면 blocking보다 recovery를 우선한다. 이 방식은 방산 임무 환경에서 중요한 mission availability를 직접 반영한다.
+This differs from the original MVP formula because v2 treats Red success and action cost as negative utility, which better reflects a defense-oriented mission evaluation.
 
-### Explainable Risk Decomposition
+## Post-Action SLA Recovery
 
-위험도는 하나의 숫자로만 출력되지 않고 auth_failure_score, traffic_spike_score, latency_score, telemetry_inconsistency_score, error_rate_score로 분해된다. 따라서 심사자는 Blue Agent가 "왜 이 액션을 선택했는지"를 로그와 dashboard에서 추적할 수 있다.
+Every self-play or balanced evaluation round inserts a `RECOVERY_HEALTH_CHECK` event after the Blue action. This event makes the post-action SLA measurable instead of merely implied.
 
-### Commander-driven Self-Play
+Recovery effects are simulated locally:
 
-Commander Agent는 Red와 Blue가 무작위로 움직이지 않도록 운영 방향을 조정한다. SLA가 나쁘면 `RECOVERY_FIRST`, Blue 실패가 누적되면 `DEFENSE_HARDENING`, Red 성공률이 낮으면 `RED_EXPLORATION`으로 전환한다. 이 구조는 self-play가 단순 랜덤 이벤트 생성이 아니라 점수 기반 curriculum처럼 동작하게 만든다.
+- `RESTART_SERVICE`: restores active mission state with latency around 150 ms.
+- `ROLLBACK_VERSION`: restores active mission state with latency around 170 ms.
+- `APPLY_RATE_LIMIT` for `TRAFFIC_SPIKE`: reduces simulated traffic impact and keeps latency under 280 ms.
+- `ISOLATE_TELEMETRY_STREAM` for `TELEMETRY_INCONSISTENCY`: keeps the mission active and marks communication as degraded-but-contained.
 
-### Safe-by-design Red Agent
+No real service restart, rollback, firewall change, network action, or telemetry isolation is executed.
 
-Red Agent는 실제 공격을 수행하지 않고 `TRAFFIC_SPIKE`, `AUTH_ANOMALY`, `TELEMETRY_INCONSISTENCY` 같은 안전한 category event만 생성한다. 따라서 대회 예선 단계에서 아이디어를 명확히 보여주면서도 외부 시스템에 위해를 주지 않는다.
+## Adaptive Self-Play Experiment
 
-### Competition Adapter 확장성
-
-에이전트의 판단 로직은 `BaseCompetitionAdapter` 인터페이스 뒤에 분리되어 있다. 현재는 LocalSimulatorAdapter가 SQLite 기반 로컬 환경을 감싸고, 본선 API가 공개되면 CompetitionStubAdapter 자리에 실제 adapter를 연결하면 된다. 즉, MVP는 "로컬 데모"에 머무르지 않고 대회 runtime으로 옮겨갈 수 있는 구조를 미리 갖춘다.
-
-### 제출 데모에서 강조할 포인트
-
-- Red event가 안전한 로컬 anomaly인지 확인할 수 있다.
-- Blue action이 event type과 SLA 조건에 따라 달라진다.
-- Commander mode가 score history에 따라 바뀐다.
-- Dashboard에서 Attack, Defense, SLA, Total Utility가 동시에 보인다.
-- `/selfplay/round` 응답에 strategy note가 포함되어 판단 근거가 설명된다.
-
-## 8. 데모 시나리오
-
-### Scenario A: Traffic Spike
-
-Red Agent가 `TRAFFIC_SPIKE` 이벤트를 생성한다. Blue Agent는 traffic_spike_score와 latency_score를 보고 SLA가 안정적이면 `APPLY_RATE_LIMIT`를 선택한다. 목표는 방어 대응을 하면서도 mission status를 ACTIVE로 유지하는 것이다.
-
-### Scenario B: Telemetry Inconsistency
-
-Red Agent가 `TELEMETRY_INCONSISTENCY` 이벤트를 생성한다. Blue Agent는 telemetry_inconsistency_score가 높을 때 `ISOLATE_TELEMETRY_STREAM`을 선택한다. 목표는 telemetry 무결성 이상을 containment하면서 임무 중단을 피하는 것이다.
-
-### Scenario C: Service Degradation
-
-Red Agent가 `SERVICE_DEGRADATION` 이벤트를 생성한다. SLA가 낮아지면 Commander는 `RECOVERY_FIRST`로 전환하고, Blue Agent는 차단보다 `RESTART_SERVICE` 또는 `ROLLBACK_VERSION` 같은 복구 중심 액션을 우선한다.
-
-## 9. 안전성 선언
-
-본 프로젝트는 다음 기능을 포함하지 않는다.
-
-- 실제 해킹 또는 취약점 악용
-- 포트 스캔, 네트워크 스캔
-- 브루트포스, credential attack, credential theft
-- malware, persistence, lateral movement
-- 외부 시스템 공격 또는 침투 행위
-
-모든 Red behavior는 로컬 DB에 기록되는 시뮬레이션 이벤트다. Competition Adapter의 stub도 외부 API를 호출하지 않는다.
-
-## 10. 실행 및 검증
-
-로컬 실행:
+Command:
 
 ```bash
-pip install -r requirements.txt
-uvicorn mission_service.app:app --reload --port 8000
-streamlit run dashboard/streamlit_app.py
+python scripts/run_experiments.py --rounds 100 --seed 42
 ```
 
-Docker 실행:
+The adaptive self-play experiment lets the Commander and Red Agent change scenario selection based on recent score history. This is useful for showing curriculum behavior, but it can produce an imbalanced scenario mix.
+
+| Metric | Value |
+| --- | ---: |
+| Rounds | 100 |
+| Average SLA | 100.00 |
+| Average SLA Drop | 7.54 |
+| Average Recovery Delta | 8.00 |
+| Average Utility | 70.73 |
+| False Positive Rate | 0.000 |
+| Recovery Success Rate | 1.000 |
+| Coverage Score | 100.00 |
+
+Per-scenario distribution in the adaptive run:
+
+| Scenario | Attempts | Action Accuracy | Average SLA | False Positive Rate | Recovery Success Rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AUTH_ANOMALY | 3 | 1.000 | 100.00 | 0.000 | 1.000 |
+| LOG_NOISE | 51 | 1.000 | 100.00 | 0.000 | 1.000 |
+| MISSION_COMMAND_ANOMALY | 2 | 1.000 | 100.00 | 0.000 | 1.000 |
+| SERVICE_DEGRADATION | 36 | 1.000 | 100.00 | 0.000 | 1.000 |
+| TELEMETRY_INCONSISTENCY | 4 | 1.000 | 100.00 | 0.000 | 1.000 |
+| TRAFFIC_SPIKE | 4 | 1.000 | 100.00 | 0.000 | 1.000 |
+
+Honest interpretation: adaptive self-play concentrated heavily on `LOG_NOISE` and `SERVICE_DEGRADATION` in this seeded run. That is expected behavior for a memory-guided heuristic loop, but it is not enough by itself to prove per-scenario stability. This is why the balanced scenario evaluation was added.
+
+## Balanced Scenario Evaluation
+
+Command:
 
 ```bash
-docker compose up --build
+python scripts/run_balanced_evaluation.py --rounds-per-scenario 20 --seed 42
 ```
 
-검증 명령:
+Balanced evaluation fixes the schedule so each safe scenario is tested exactly 20 times. It uses the same Blue Agent, local action registry, `RECOVERY_HEALTH_CHECK`, and v2 scoring model as adaptive self-play.
 
-```bash
-pytest
-curl http://localhost:8000/health
-curl -X POST http://localhost:8000/selfplay/round
-```
+| Scenario | Attempts | Action Accuracy | Average SLA | Recovery Success Rate | False Positive Rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TRAFFIC_SPIKE | 20 | 1.000 | 100.00 | 1.000 | 0.000 |
+| AUTH_ANOMALY | 20 | 1.000 | 100.00 | 1.000 | 0.000 |
+| TELEMETRY_INCONSISTENCY | 20 | 1.000 | 100.00 | 1.000 | 0.000 |
+| SERVICE_DEGRADATION | 20 | 1.000 | 100.00 | 1.000 | 0.000 |
+| MISSION_COMMAND_ANOMALY | 20 | 1.000 | 100.00 | 1.000 | 0.000 |
+| LOG_NOISE | 20 | 1.000 | 100.00 | 1.000 | 0.000 |
 
-검증 완료 상태:
+The balanced result shows that the latest-event Blue policy is stable across the full safe scenario set. In particular, `TRAFFIC_SPIKE` maps to `APPLY_RATE_LIMIT`, `AUTH_ANOMALY` maps to `BLOCK_SUSPICIOUS_TOKEN`, `MISSION_COMMAND_ANOMALY` maps to deception/escalation rather than restart, and `LOG_NOISE` remains observe-only.
 
-- clean clone 검증 통과
-- fresh venv dependency install 통과
-- pytest 11개 통과
-- Docker Compose build/run 통과
-- FastAPI 8000 확인
-- Streamlit 8501 확인
+## Early-vs-Late Self-Play Comparison
 
-## 11. 본선 확장 계획
+| Window | Average SLA | Blue Success Rate | Red Success Rate | Average Recovery Delta | False Positive Rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Rounds 1-20 | 100.00 | 1.000 | 0.000 | 0.00 | 0.000 |
+| Rounds 81-100 | 100.00 | 1.000 | 0.200 | 20.00 | 0.000 |
 
-본선 환경이 공개되면 다음 항목만 교체한다.
+The late window has higher recovery delta because it contains more disruptive `SERVICE_DEGRADATION` rounds. Blue success remained stable, while Red success appears only when the simulated event caused immediate SLA disruption before recovery.
 
-- 이벤트 수집: Competition API에서 실시간 로그 수신
-- 미션 상태 조회: 대회 runtime 상태 조회
-- 방어 액션 제출: Blue action을 대회 API로 제출
-- 점수 조회: 공식 scoring API 반영
+## Safety Boundaries
 
-에이전트 판단 루프, SLA-aware policy, scoring dashboard는 유지한다. 이 구조는 예선 로컬 MVP와 본선 runtime을 같은 인터페이스로 연결하기 위한 준비다.
+Aegis-Swarm v2 intentionally excludes real offensive cyber functionality:
+
+- No exploit payloads
+- No port scanning or network scanning
+- No brute force or credential guessing
+- No credential theft
+- No malware, persistence, lateral movement, or destructive behavior
+- No attack against external targets
+- No shell or system commands for defense actions
+
+All Red behavior is a local synthetic event inserted into SQLite and processed by local Python code.
+
+## Private Adapter Plan for Official Competition
+
+The public repository includes `LocalSimulatorAdapter` and `CompetitionStubAdapter`. The stub is deliberately not configured and never calls external systems.
+
+For official competition integration, a private adapter should be implemented outside the public submission branch. That adapter would map official runtime APIs to the same interface:
+
+- `get_mission_state()`
+- `get_recent_events(limit)`
+- `submit_blue_action(action)`
+- `get_latest_scores()`
+- `adapter_status()`
+
+This keeps the public repository free of private endpoints, credentials, NDA data, or competition-specific secrets.
+
+## Limitations and Future Work
+
+Current limitations:
+
+- Red Agent adaptation is epsilon-greedy heuristic selection, not full reinforcement learning.
+- Blue Agent is modular and adaptive, but still rule-based.
+- Experiments are local simulations, not official competition runtime results.
+- Balanced evaluation currently uses deterministic scenario counts but still samples severity from safe ranges.
+- Dashboard screenshots and a final PDF package still need to be captured before submission.
+
+Future work:
+
+- Add richer Commander curriculum strategies.
+- Add more evidence runs with multiple seeds.
+- Improve scenario memory visualization in the dashboard.
+- Add private official-runtime adapter after rules and APIs are available.
+- Package final report, screenshots, and demo logs into the DAH submission PDF.
