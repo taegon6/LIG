@@ -193,6 +193,30 @@ Per-scenario distribution in the adaptive run:
 
 Honest interpretation: adaptive self-play concentrated heavily on `LOG_NOISE` and `SERVICE_DEGRADATION` in this seeded run. That is expected behavior for a memory-guided heuristic loop, but it is not enough by itself to prove per-scenario stability. This is why the balanced scenario evaluation was added.
 
+## Ablation Study
+
+Command:
+
+```bash
+python scripts/run_ablation.py --rounds 100 --seed 42
+```
+
+The ablation study compares four local-only Blue policy variants:
+
+- `baseline_rule`: generic risk/SLA policy with dominant-event selection.
+- `latest_event_only`: generic policy plus latest-event prioritization.
+- `memory_only`: generic policy plus scenario-memory correction, without the latest-event boundary.
+- `full_v2`: current v2 Blue Agent with latest-event prioritization, modular event-specific policy, and scenario memory.
+
+| Variant | Average SLA | Blue Success Rate | Red Success Rate | Recovery Success Rate | False Positive Rate | Average Utility |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| baseline_rule | 100.00 | 0.820 | 0.390 | 1.000 | 0.100 | 63.54 |
+| latest_event_only | 100.00 | 0.930 | 0.110 | 1.000 | 0.000 | 69.79 |
+| memory_only | 96.00 | 0.530 | 0.650 | 1.000 | 0.120 | 55.53 |
+| full_v2 | 100.00 | 1.000 | 0.040 | 1.000 | 0.000 | 70.96 |
+
+Interpretation: latest-event prioritization is the largest isolated gain, reducing stale-history mistakes and false positives. Scenario memory alone is not sufficient when event selection is still stale; in this run it becomes a negative control. Full v2 performs best because it combines the latest-event boundary with event-specific policy and memory-informed adaptation.
+
 ## Balanced Scenario Evaluation
 
 Command:

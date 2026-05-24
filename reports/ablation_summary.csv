@@ -1,0 +1,5 @@
+variant,rounds,seed,average_sla,blue_success_rate,red_success_rate,recovery_success_rate,false_positive_rate,average_utility
+baseline_rule,100,42,100.0,0.82,0.39,1.0,0.1,63.54
+latest_event_only,100,42,100.0,0.93,0.11,1.0,0.0,69.79
+memory_only,100,42,96.0,0.53,0.65,1.0,0.12,55.53
+full_v2,100,42,100.0,1.0,0.04,1.0,0.0,70.96

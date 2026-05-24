@@ -106,6 +106,23 @@ python scripts/run_multi_seed_evaluation.py --seeds 1,2,3,4,5 --rounds 100
 
 The multi-seed run keeps post-action SLA and rolling SLA stable at 100.000 across seeds. Scenario entropy varies because adaptive self-play deliberately changes scenario pressure based on recent outcomes; this reinforces why the balanced scenario evaluation remains a separate judging artifact. False positives stayed at 0.000, and each scenario observed across the five seeds retained action accuracy of 1.000.
 
+## Ablation Study
+
+The ablation study compares four local-only Blue policy variants for 100 rounds with seed 42. The goal is to separate the contribution of latest-event prioritization from scenario-memory/adaptive policy behavior.
+
+```bash
+python scripts/run_ablation.py --rounds 100 --seed 42
+```
+
+| Variant | Average SLA | Blue Success Rate | Red Success Rate | Recovery Success Rate | False Positive Rate | Average Utility |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| baseline_rule | 100.00 | 0.820 | 0.390 | 1.000 | 0.100 | 63.54 |
+| latest_event_only | 100.00 | 0.930 | 0.110 | 1.000 | 0.000 | 69.79 |
+| memory_only | 96.00 | 0.530 | 0.650 | 1.000 | 0.120 | 55.53 |
+| full_v2 | 100.00 | 1.000 | 0.040 | 1.000 | 0.000 | 70.96 |
+
+The latest-event variant improves substantially over the generic baseline by avoiding stale-history decisions. The memory-only variant shows an important negative control: scenario memory without the latest-event boundary can amplify stale dominant-event choices. Full v2 combines latest-event prioritization, modular event-specific policy, and scenario memory, producing the best blue success rate, lowest red success rate, zero false positives, and highest utility in this run.
+
 ## Safe Stress Scenario Pack
 
 The stress scenario pack evaluates short sequences of existing safe event types only. It does not introduce new attack primitives; each step is still generated through the same local simulator event schema and followed by Blue decision, simulated action, `RECOVERY_HEALTH_CHECK`, and v2 scoring.
@@ -140,5 +157,6 @@ Generated evidence files:
 - `reports/balanced_scenario_summary.csv`
 - `reports/multi_seed_summary.csv`
 - `reports/multi_seed_scenario_summary.csv`
+- `reports/ablation_summary.csv`
 - `reports/stress_round_metrics.csv`
 - `reports/stress_summary.csv`
