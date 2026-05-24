@@ -141,6 +141,30 @@ python scripts/run_stress_scenarios.py --seed 42
 
 `SLOW_BURN_DEGRADATION` and `TELEMETRY_DRIFT` intentionally include steps that can drop instant event SLA before recovery. Final SLA returns to 100.00 for every sequence, while false positives remain 0.000. This gives judges a compact view of Blue policy behavior under clustered safe anomalies rather than isolated single events.
 
+## Hard Mode Evaluation
+
+The normal, balanced, multi-seed, and stress runs are useful evidence, but they can look too optimistic because post-action recovery is usually immediate. Hard mode was added to avoid optimistic-only evaluation. It keeps all behavior local and simulated, but adds repeated pressure, higher simulated response cost, partial recovery, and rolling SLA pressure.
+
+```bash
+python scripts/run_hard_mode.py --rounds 100 --seed 42
+```
+
+| Metric | Value |
+| --- | ---: |
+| Average SLA | 29.00 |
+| Minimum rolling SLA 10 | 10.00 |
+| Minimum rolling SLA 50 | 14.29 |
+| Average recovery delta | 1.00 |
+| Recovery failure rate | 0.71 |
+| Blue success rate | 1.00 |
+| Red success rate | 0.72 |
+| False positive rate | 0.00 |
+| Average utility | 40.23 |
+
+The hard-mode result is intentionally not perfect. Blue often selects the expected action, but repeated local pressure can still make recovery fail or arrive too late. This is an important limitation: action correctness does not guarantee mission availability under sustained pressure.
+
+The detailed failure analysis is documented in `docs/failure_analysis.md`. Representative hard-mode cases include `REPEATED_SERVICE_DEGRADATION`, `TELEMETRY_DRIFT`, `MIXED_SAFE_SEQUENCE`, and `NOISE_THEN_PRESSURE`. These cases are local simulated hard-mode cases only; they do not prove real-world defense effectiveness.
+
 ## Interpretation for DAH Preliminary Report
 
 The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% while still exercising all six safe simulated scenario types. The service degradation scenario caused the clearest SLA impact, with an average SLA drop of 20.94 points and average recovery delta of 22.22 points. This demonstrates that the post-action `RECOVERY_HEALTH_CHECK` model is measurable rather than decorative.
@@ -148,6 +172,8 @@ The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% wh
 False positives remained 0.000 after Blue Agent was hardened to prioritize the latest unrecovered active event while treating `RECOVERY_HEALTH_CHECK` as a boundary for already-handled history. This avoids both stale-event overreaction and passive observation for fresh simulated pressure.
 
 Scenario coverage reached 100%, and scenario entropy reached 64.30. Action accuracy improved to 1.000 for every scenario in this deterministic run, including `TRAFFIC_SPIKE` and `MISSION_COMMAND_ANOMALY`. The remaining improvement target is gathering more samples for low-frequency scenarios and tuning service-degradation scoring so temporary pre-recovery disruption is separated more clearly from final mission recovery.
+
+Aegis-Swarm v2 remains a local simulation. Official DAH runtime integration requires a private adapter that maps competition APIs into the public adapter interface without exposing private endpoints, credentials, or competition-specific secrets.
 
 Generated evidence files:
 
@@ -160,3 +186,6 @@ Generated evidence files:
 - `reports/ablation_summary.csv`
 - `reports/stress_round_metrics.csv`
 - `reports/stress_summary.csv`
+- `reports/hard_mode_round_metrics.csv`
+- `reports/hard_mode_summary.csv`
+- `docs/failure_analysis.md`

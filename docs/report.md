@@ -238,6 +238,40 @@ Balanced evaluation fixes the schedule so each safe scenario is tested exactly 2
 
 The balanced result shows that the latest-event Blue policy is stable across the full safe scenario set. In particular, `TRAFFIC_SPIKE` maps to `APPLY_RATE_LIMIT`, `AUTH_ANOMALY` maps to `BLOCK_SUSPICIOUS_TOKEN`, `MISSION_COMMAND_ANOMALY` maps to deception/escalation rather than restart, and `LOG_NOISE` remains observe-only.
 
+## Hard Mode Evaluation and Failure Analysis
+
+Command:
+
+```bash
+python scripts/run_hard_mode.py --rounds 100 --seed 42
+```
+
+Hard mode was added because normal self-play, balanced evaluation, and stress scenarios can look too optimistic when post-action recovery is immediate. The hard-mode runner keeps the same safety boundary and approved local event types, but adds repeated local pressure, higher simulated action cost, partial recovery, and rolling SLA pressure.
+
+| Metric | Value |
+| --- | ---: |
+| Average SLA | 29.00 |
+| Minimum rolling SLA 10 | 10.00 |
+| Minimum rolling SLA 50 | 14.29 |
+| Average recovery delta | 1.00 |
+| Recovery failure rate | 0.71 |
+| Blue success rate | 1.00 |
+| Red success rate | 0.72 |
+| False positive rate | 0.00 |
+| Average utility | 40.23 |
+
+Interpretation: the Blue Agent often selected the expected action, but hard mode shows that correct action selection is not the same as guaranteed recovery. Under sustained simulated pressure, `RESTART_SERVICE`, `ISOLATE_TELEMETRY_STREAM`, and `APPLY_RATE_LIMIT` can still produce delayed or partial recovery. This is the main honest limitation exposed by the hard-mode evidence.
+
+Failure analysis is documented separately in `docs/failure_analysis.md`. It covers five local simulated hard-mode cases:
+
+- `TELEMETRY_DRIFT / TELEMETRY_INCONSISTENCY`
+- `REPEATED_SERVICE_DEGRADATION / SERVICE_DEGRADATION`
+- `MIXED_SAFE_SEQUENCE / SERVICE_DEGRADATION`
+- `MIXED_SAFE_SEQUENCE / TRAFFIC_SPIKE`
+- `NOISE_THEN_PRESSURE / TELEMETRY_INCONSISTENCY`
+
+These cases do not claim perfect real-world defense. They show where the next version should improve: pressure-aware Commander mode changes, multi-step recovery, cooldown modeling, and sequence-aware Blue planning.
+
 ## Early-vs-Late Self-Play Comparison
 
 | Window | Average SLA | Blue Success Rate | Red Success Rate | Average Recovery Delta | False Positive Rate |
@@ -282,7 +316,9 @@ Current limitations:
 - Red Agent adaptation is epsilon-greedy heuristic selection, not full reinforcement learning.
 - Blue Agent is modular and adaptive, but still rule-based.
 - Experiments are local simulations, not official competition runtime results.
+- Hard-mode pressure and partial recovery are simulated; they are not measurements from the official DAH runtime.
 - Balanced evaluation currently uses deterministic scenario counts but still samples severity from safe ranges.
+- Official runtime integration requires a private adapter for competition APIs, credentials, and endpoints.
 - Dashboard screenshots and a final PDF package still need to be captured before submission.
 
 Future work:
