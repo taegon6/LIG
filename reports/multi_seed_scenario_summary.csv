@@ -1,0 +1,7 @@
+event_type,seeds_observed,total_attempts,action_accuracy_mean,action_accuracy_std,average_sla_mean,average_sla_std,recovery_success_rate_mean,recovery_success_rate_std,false_positive_rate_mean,false_positive_rate_std,average_utility_mean,average_utility_std
+AUTH_ANOMALY,5,208,1.0,0.0,100.0,0.0,1.0,0.0,0.0,0.0,71.3,0.0
+LOG_NOISE,5,17,1.0,0.0,100.0,0.0,1.0,0.0,0.0,0.0,72.0,0.0
+MISSION_COMMAND_ANOMALY,5,70,1.0,0.0,100.0,0.0,1.0,0.0,0.0,0.0,71.424,0.108
+SERVICE_DEGRADATION,5,75,1.0,0.0,100.0,0.0,1.0,0.0,0.0,0.0,68.21,2.246
+TELEMETRY_INCONSISTENCY,5,12,1.0,0.0,100.0,0.0,1.0,0.0,0.0,0.0,71.0,0.0
+TRAFFIC_SPIKE,5,118,1.0,0.0,100.0,0.0,1.0,0.0,0.0,0.0,71.4,0.0

@@ -1,0 +1,12 @@
+metric,mean,std,min,max,seeds,rounds_per_seed
+average_sla,100.0,0.0,100.0,100.0,"1,2,3,4,5",100
+average_sla_drop,5.972,6.172,0.0,13.86,"1,2,3,4,5",100
+average_recovery_delta,6.4,6.656,0.0,15.0,"1,2,3,4,5",100
+average_utility,70.708,0.667,69.82,71.38,"1,2,3,4,5",100
+false_positive_rate,0.0,0.0,0.0,0.0,"1,2,3,4,5",100
+recovery_success_rate,1.0,0.0,1.0,1.0,"1,2,3,4,5",100
+scenario_entropy,54.488,21.421,29.57,74.69,"1,2,3,4,5",100
+coverage_score,100.0,0.0,100.0,100.0,"1,2,3,4,5",100
+final_rolling_sla_10,100.0,0.0,100.0,100.0,"1,2,3,4,5",100
+final_rolling_sla_50,100.0,0.0,100.0,100.0,"1,2,3,4,5",100
+final_rolling_recovery_delta,18.0,17.889,0.0,40.0,"1,2,3,4,5",100

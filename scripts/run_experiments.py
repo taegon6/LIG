@@ -16,6 +16,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.evaluation_metrics import ROLLING_COLUMNS, add_rolling_metrics
+
 ROUND_COLUMNS = [
     "round_id",
     "event_type",
@@ -34,6 +36,7 @@ ROUND_COLUMNS = [
     "false_positive_penalty",
     "action_cost",
     "total_utility",
+    *ROLLING_COLUMNS,
 ]
 
 SCENARIO_COLUMNS = [
@@ -177,6 +180,7 @@ def run_experiments(
         response.raise_for_status()
         round_rows.append(round_to_metric(round_id, response.json()))
 
+    round_rows = add_rolling_metrics(round_rows)
     scenario_stats = client.get("/stats/scenarios").json()
     scenario_rows = summarize_by_scenario(round_rows)
     reports_dir.mkdir(parents=True, exist_ok=True)

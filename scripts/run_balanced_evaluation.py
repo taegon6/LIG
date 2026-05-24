@@ -21,6 +21,7 @@ from core.sla import calculate_sla
 from mission_service import db
 from mission_service.app import build_post_action_health_event, update_mission_state_from_event
 from mission_service.models import MissionState
+from scripts.evaluation_metrics import ROLLING_COLUMNS, add_rolling_metrics
 from simulator.event_generator import generate_event
 from simulator.scenarios import SAFE_SCENARIOS
 
@@ -48,6 +49,7 @@ BALANCED_ROUND_COLUMNS = [
     "total_utility",
     "action_match",
     "false_positive",
+    *ROLLING_COLUMNS,
 ]
 
 BALANCED_SCENARIO_COLUMNS = [
@@ -202,6 +204,7 @@ def run_balanced_evaluation(
             )
             round_id += 1
 
+    round_rows = add_rolling_metrics(round_rows)
     scenario_rows = summarize_by_scenario(round_rows)
     reports_dir.mkdir(parents=True, exist_ok=True)
     round_metrics_path = reports_dir / "balanced_round_metrics.csv"

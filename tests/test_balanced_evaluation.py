@@ -5,7 +5,7 @@ import shutil
 from collections import Counter
 from pathlib import Path
 
-from scripts.run_balanced_evaluation import BALANCED_SCENARIOS, run_balanced_evaluation
+from scripts.run_balanced_evaluation import BALANCED_ROUND_COLUMNS, BALANCED_SCENARIOS, run_balanced_evaluation
 
 
 def workspace_tmp(name: str) -> Path:
@@ -34,6 +34,20 @@ def test_balanced_evaluation_creates_both_csv_files() -> None:
 
     assert Path(summary["round_metrics"]).exists()
     assert Path(summary["scenario_summary"]).exists()
+
+
+def test_balanced_round_metrics_include_rolling_sla_columns() -> None:
+    workdir = workspace_tmp("rolling_columns")
+    reports_dir = workdir / "reports"
+
+    run_balanced_evaluation(
+        rounds_per_scenario=1,
+        seed=42,
+        reports_dir=reports_dir,
+        db_path=workdir / "balanced.db",
+    )
+
+    assert list(read_csv(reports_dir / "balanced_round_metrics.csv")[0].keys()) == BALANCED_ROUND_COLUMNS
 
 
 def test_balanced_evaluation_includes_every_safe_scenario() -> None:

@@ -8,6 +8,13 @@ python scripts/run_experiments.py --rounds 100 --seed 42
 
 The experiment uses FastAPI `TestClient` and a local SQLite experiment database. It does not require Docker and does not contact external targets.
 
+Round-level CSVs now include rolling SLA evidence columns:
+
+- `instant_sla`: post-action SLA for the current round.
+- `rolling_sla_10`: average `instant_sla` over the current and previous 9 rounds.
+- `rolling_sla_50`: average `instant_sla` over the current and previous 49 rounds.
+- `rolling_recovery_delta`: average recovery delta over the current and previous 9 rounds.
+
 ## Summary Metrics
 
 | Metric | Value |
@@ -62,6 +69,43 @@ The balanced run created 120 total local simulation rounds. No external target i
 
 Balanced evaluation highlights per-scenario defense stability. `TRAFFIC_SPIKE` now consistently maps to `APPLY_RATE_LIMIT`, `AUTH_ANOMALY` maps to `BLOCK_SUSPICIOUS_TOKEN`, `MISSION_COMMAND_ANOMALY` maps to deception/escalation rather than service restart, and `LOG_NOISE` remains observe-only with a 0.000 false positive rate. `SERVICE_DEGRADATION` intentionally creates the largest immediate SLA disruption, then demonstrates full local recovery through the post-action `RECOVERY_HEALTH_CHECK`.
 
+## Multi-Seed Robustness Evaluation
+
+The single seeded run is useful for reproducibility, but preliminary judging benefits from knowing whether the results are stable under different random seeds. The multi-seed evaluation ran five independent adaptive self-play experiments with 100 rounds each.
+
+```bash
+python scripts/run_multi_seed_evaluation.py --seeds 1,2,3,4,5 --rounds 100
+```
+
+### Multi-Seed Mean/Std Summary
+
+| Metric | Mean | Std | Min | Max |
+| --- | ---: | ---: | ---: | ---: |
+| Average SLA | 100.000 | 0.000 | 100.000 | 100.000 |
+| Average SLA Drop | 5.972 | 6.172 | 0.000 | 13.860 |
+| Average Recovery Delta | 6.400 | 6.656 | 0.000 | 15.000 |
+| Average Utility | 70.708 | 0.667 | 69.820 | 71.380 |
+| False Positive Rate | 0.000 | 0.000 | 0.000 | 0.000 |
+| Recovery Success Rate | 1.000 | 0.000 | 1.000 | 1.000 |
+| Scenario Entropy | 54.488 | 21.421 | 29.570 | 74.690 |
+| Coverage Score | 100.000 | 0.000 | 100.000 | 100.000 |
+| Final Rolling SLA 10 | 100.000 | 0.000 | 100.000 | 100.000 |
+| Final Rolling SLA 50 | 100.000 | 0.000 | 100.000 | 100.000 |
+| Final Rolling Recovery Delta | 18.000 | 17.889 | 0.000 | 40.000 |
+
+### Multi-Seed Scenario Summary
+
+| Scenario | Seeds Observed | Total Attempts | Action Accuracy Mean | Action Accuracy Std | Avg SLA Mean | Recovery Success Mean | False Positive Mean | Avg Utility Mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| AUTH_ANOMALY | 5 | 208 | 1.000 | 0.000 | 100.000 | 1.000 | 0.000 | 71.300 |
+| LOG_NOISE | 5 | 17 | 1.000 | 0.000 | 100.000 | 1.000 | 0.000 | 72.000 |
+| MISSION_COMMAND_ANOMALY | 5 | 70 | 1.000 | 0.000 | 100.000 | 1.000 | 0.000 | 71.424 |
+| SERVICE_DEGRADATION | 5 | 75 | 1.000 | 0.000 | 100.000 | 1.000 | 0.000 | 68.210 |
+| TELEMETRY_INCONSISTENCY | 5 | 12 | 1.000 | 0.000 | 100.000 | 1.000 | 0.000 | 71.000 |
+| TRAFFIC_SPIKE | 5 | 118 | 1.000 | 0.000 | 100.000 | 1.000 | 0.000 | 71.400 |
+
+The multi-seed run keeps post-action SLA and rolling SLA stable at 100.000 across seeds. Scenario entropy varies because adaptive self-play deliberately changes scenario pressure based on recent outcomes; this reinforces why the balanced scenario evaluation remains a separate judging artifact. False positives stayed at 0.000, and each scenario observed across the five seeds retained action accuracy of 1.000.
+
 ## Interpretation for DAH Preliminary Report
 
 The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% while still exercising all six safe simulated scenario types. The service degradation scenario caused the clearest SLA impact, with an average SLA drop of 20.94 points and average recovery delta of 22.22 points. This demonstrates that the post-action `RECOVERY_HEALTH_CHECK` model is measurable rather than decorative.
@@ -76,3 +120,5 @@ Generated evidence files:
 - `reports/scenario_summary.csv`
 - `reports/balanced_round_metrics.csv`
 - `reports/balanced_scenario_summary.csv`
+- `reports/multi_seed_summary.csv`
+- `reports/multi_seed_scenario_summary.csv`
