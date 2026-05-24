@@ -48,6 +48,7 @@ def test_selfplay_round_includes_dah_fields() -> None:
     assert "sla_delta" in body
     assert "recovery_delta" in body
     assert "recovery_event" in body
+    assert body["recovery_event"]["event_type"] == "RECOVERY_HEALTH_CHECK"
     assert "knowledge_mapping" in body
     assert "red_event" in body["knowledge_mapping"]
     assert "blue_action" in body["knowledge_mapping"]

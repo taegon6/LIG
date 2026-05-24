@@ -1,3 +1,7 @@
 event_type,attempts,average_sla,average_sla_drop,average_recovery_delta,average_utility,action_accuracy,false_positive_rate,recovery_success_rate
-LOG_NOISE,4,100.0,0.0,0.0,72.0,1.0,0.0,1.0
-TRAFFIC_SPIKE,1,100.0,0.0,0.0,51.6,0.0,0.0,1.0
+AUTH_ANOMALY,3,100.0,0.0,0.0,64.27,0.667,0.0,1.0
+LOG_NOISE,51,100.0,0.0,0.0,72.0,1.0,0.0,1.0
+MISSION_COMMAND_ANOMALY,2,100.0,0.0,0.0,60.62,0.5,0.0,1.0
+SERVICE_DEGRADATION,36,100.0,20.94,22.22,68.44,0.972,0.0,1.0
+TELEMETRY_INCONSISTENCY,4,100.0,0.0,0.0,71.5,1.0,0.0,1.0
+TRAFFIC_SPIKE,4,100.0,0.0,0.0,56.25,0.25,0.0,1.0

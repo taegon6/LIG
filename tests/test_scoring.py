@@ -36,10 +36,61 @@ def test_recovery_action_preserves_or_improves_post_action_sla() -> None:
     mission_state = MissionState(**action_result["mission_state"])
 
     recovery_event = build_post_action_health_event(event, decision, mission_state, action_result)
-    post_action_sla = calculate_sla([recovery_event.model_dump(), event])
+    post_action_sla = calculate_sla([recovery_event.model_dump()])
 
     assert decision.selected_action in {"RESTART_SERVICE", "ROLLBACK_VERSION"}
-    assert post_action_sla >= post_event_sla
+    assert post_action_sla >= 95.0
+    assert 120 <= recovery_event.latency_ms <= 180
+    assert recovery_event.status_code == 200
+    assert recovery_event.mission_status == "ACTIVE"
+    assert recovery_event.sla_ok is True
+
+
+def test_rate_limit_improves_traffic_spike_sla() -> None:
+    event = {
+        "event_type": "TRAFFIC_SPIKE",
+        "severity": 0.9,
+        "latency_ms": 620,
+        "status_code": 200,
+        "mission_status": "ACTIVE",
+        "sla_ok": False,
+    }
+    post_event_sla = calculate_sla([event])
+    decision = BlueAgent().decide([event], post_event_sla)
+    action_result = apply_action_to_state(decision, MissionState().model_dump())
+    mission_state = MissionState(**action_result["mission_state"])
+
+    recovery_event = build_post_action_health_event(event, decision, mission_state, action_result)
+    post_action_sla = calculate_sla([recovery_event.model_dump()])
+
+    assert decision.selected_action == "APPLY_RATE_LIMIT"
+    assert recovery_event.latency_ms <= 280
+    assert recovery_event.status_code == 200
+    assert recovery_event.mission_status == "ACTIVE"
+    assert recovery_event.sla_ok is True
+    assert post_action_sla > post_event_sla
+
+
+def test_telemetry_isolation_preserves_mission_availability() -> None:
+    event = {
+        "event_type": "TELEMETRY_INCONSISTENCY",
+        "severity": 0.9,
+        "latency_ms": 470,
+        "status_code": 200,
+        "mission_status": "ACTIVE",
+        "sla_ok": False,
+    }
+    post_event_sla = calculate_sla([event])
+    decision = BlueAgent().decide([event], post_event_sla)
+    action_result = apply_action_to_state(decision, MissionState().model_dump())
+    mission_state = MissionState(**action_result["mission_state"])
+
+    recovery_event = build_post_action_health_event(event, decision, mission_state, action_result)
+
+    assert decision.selected_action == "ISOLATE_TELEMETRY_STREAM"
+    assert action_result["mission_state"]["comm_status"] == "DEGRADED_BUT_CONTAINED"
+    assert recovery_event.mission_status == "ACTIVE"
+    assert recovery_event.sla_ok is True
 
 
 def test_high_severity_correct_action_does_not_create_high_red_success() -> None:

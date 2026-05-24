@@ -30,7 +30,12 @@ class BlueAgent:
         risk_score = self.triage.risk_score(component_scores)
         risk_level = self.triage.risk_level(risk_score)
         dominant = dominant_event_type(events)
-        action, reason = self.choose_action(dominant, risk_score, sla_score)
+        current_event_type = str(events[0].get("event_type", "NORMAL")) if events else "NORMAL"
+        if current_event_type in {"NORMAL", "LOG_NOISE", "RECOVERY_HEALTH_CHECK"} and sla_score >= 95:
+            action = "OBSERVE_ONLY"
+            reason = "Latest event is benign or log noise with stable SLA; observing avoids a false positive."
+        else:
+            action, reason = self.choose_action(dominant, risk_score, sla_score)
         confidence = round(min(0.95, 0.55 + abs(risk_score - 0.5) * 0.55 + len(events) * 0.01), 2)
 
         return BlueDecision(
@@ -63,6 +68,10 @@ class BlueAgent:
                 return action, f"Recent Blue failures on {event_type} increased priority. {reason}"
 
         if self.sla_governor.should_recover_first(sla_score):
+            if event_type in {"TRAFFIC_SPIKE", "AUTH_ANOMALY", "TELEMETRY_INCONSISTENCY"}:
+                action, reason = self.containment.action_for(event_type)
+                if action is not None:
+                    return action, f"SLA is degraded by {event_type}; applying the mapped containment response. {reason}"
             return self.recovery.action_for(event_type, sla_score)
 
         if risk_score < 0.3:

@@ -107,14 +107,41 @@ def build_post_action_health_event(
     action_result: dict[str, Any],
 ) -> SimulatedEvent:
     effect = action_result.get("effect", {})
+    action = decision.selected_action
+    event_type = str(event.get("event_type", "NORMAL"))
+    base_latency = int(event.get("latency_ms", 120))
     latency_delta = int(effect.get("latency_delta", 0))
-    latency_ms = max(90, min(900, int(event.get("latency_ms", 120)) + latency_delta))
+    latency_ms = max(90, min(900, base_latency + latency_delta))
     status_code = 200 if mission_state.mission_status == "ACTIVE" else 503
+    mission_status = mission_state.mission_status
+    sla_ok_state = bool(mission_state.sla_ok)
+
+    if action == "RESTART_SERVICE":
+        latency_ms = 150
+        status_code = 200
+        mission_status = "ACTIVE"
+        sla_ok_state = True
+    elif action == "ROLLBACK_VERSION":
+        latency_ms = 170
+        status_code = 200
+        mission_status = "ACTIVE"
+        sla_ok_state = True
+    elif action == "APPLY_RATE_LIMIT" and event_type == "TRAFFIC_SPIKE":
+        latency_ms = min(280, max(120, base_latency - 220))
+        status_code = 200
+        mission_status = "ACTIVE"
+        sla_ok_state = True
+    elif action == "ISOLATE_TELEMETRY_STREAM" and event_type == "TELEMETRY_INCONSISTENCY":
+        latency_ms = min(300, max(120, base_latency - 120))
+        status_code = 200
+        mission_status = "ACTIVE"
+        sla_ok_state = True
+
     sla_ok = (
-        mission_state.mission_status == "ACTIVE"
+        mission_status == "ACTIVE"
         and status_code < 500
         and latency_ms < 500
-        and bool(mission_state.sla_ok)
+        and sla_ok_state
     )
     return SimulatedEvent(
         source="action_registry",
@@ -122,7 +149,7 @@ def build_post_action_health_event(
         severity=0.0,
         latency_ms=latency_ms,
         status_code=status_code,
-        mission_status=mission_state.mission_status,
+        mission_status=mission_status,
         sla_ok=sla_ok,
         description=(
             "Post-action simulated health check after "
@@ -234,7 +261,7 @@ def selfplay_round() -> dict[str, Any]:
     saved_event = db.insert_event(red_event.model_dump())
 
     events = db.recent_events(50)
-    post_event_sla = current_sla()
+    post_event_sla = calculate_sla([saved_event])
     blue_decision = BlueAgent(db.scenario_stats()).decide(events, post_event_sla)
     action_record = db.insert_action(build_action_record(blue_decision).model_dump())
     adapter_action_result = adapter.submit_blue_action(blue_decision.model_dump())
@@ -243,7 +270,7 @@ def selfplay_round() -> dict[str, Any]:
 
     recovery_event = build_post_action_health_event(saved_event, blue_decision, MISSION_STATE, action_result)
     saved_recovery_event = db.insert_event(recovery_event.model_dump())
-    post_action_sla = current_sla()
+    post_action_sla = calculate_sla([saved_recovery_event])
     sla_delta = round(post_action_sla - pre_sla, 2)
     recovery_delta = round(post_action_sla - post_event_sla, 2)
 
