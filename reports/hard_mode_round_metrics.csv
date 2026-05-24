@@ -1,0 +1,101 @@
+round_id,sequence_name,event_type,severity,blue_action,pre_sla,post_event_sla,post_action_sla,rolling_sla_10,rolling_sla_50,recovery_delta,red_success_score,blue_defense_score,total_utility,action_match,false_positive,recovery_failed,hard_mode_note
+1,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.83,RESTART_SERVICE,100.0,0.0,100.0,100.0,100.0,100.0,45.0,98.75,59.51,True,False,False,local pressure=1; repeated anomaly pressure; higher simulated action cost=26.0
+2,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.86,RESTART_SERVICE,50.0,0.0,0.0,50.0,50.0,0.0,65.0,88.82,21.54,True,False,True,local pressure=2; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+3,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.74,RESTART_SERVICE,25.0,0.0,0.0,33.33,33.33,0.0,65.0,88.82,21.54,True,False,True,local pressure=3; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+4,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.7,ISOLATE_TELEMETRY_STREAM,16.67,0.0,0.0,25.0,25.0,0.0,45.0,91.92,36.35,True,False,True,local pressure=4; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+5,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.88,ISOLATE_TELEMETRY_STREAM,12.5,0.0,0.0,20.0,20.0,0.0,38.75,92.46,42.27,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+6,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.79,ISOLATE_TELEMETRY_STREAM,10.0,0.0,0.0,16.67,16.67,0.0,35.0,92.46,45.71,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+7,MIXED_SAFE_SEQUENCE,TRAFFIC_SPIKE,0.81,APPLY_RATE_LIMIT,8.33,0.0,0.0,14.29,14.29,0.0,20.0,93.5,54.3,True,False,True,local pressure=5; partial/delayed recovery
+8,MIXED_SAFE_SEQUENCE,AUTH_ANOMALY,0.69,BLOCK_SUSPICIOUS_TOKEN,7.14,100.0,100.0,25.0,25.0,0.0,0.0,100.0,71.3,True,False,False,local pressure=5
+9,MIXED_SAFE_SEQUENCE,MISSION_COMMAND_ANOMALY,0.69,ESCALATE_ALERT,18.75,100.0,100.0,33.33,33.33,0.0,0.0,100.0,71.5,True,False,False,local pressure=5
+10,MIXED_SAFE_SEQUENCE,SERVICE_DEGRADATION,0.7,RESTART_SERVICE,27.78,0.0,0.0,30.0,30.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+11,NOISE_THEN_PRESSURE,LOG_NOISE,0.18,OBSERVE_ONLY,25.0,100.0,100.0,30.0,36.36,0.0,0.0,100.0,72.0,True,False,False,local pressure=4
+12,NOISE_THEN_PRESSURE,LOG_NOISE,0.25,OBSERVE_ONLY,31.82,100.0,100.0,40.0,41.67,0.0,0.0,100.0,72.0,True,False,False,local pressure=3
+13,NOISE_THEN_PRESSURE,TRAFFIC_SPIKE,0.8,APPLY_RATE_LIMIT,37.5,0.0,0.0,40.0,38.46,0.0,45.0,93.5,31.38,True,False,True,local pressure=4; partial/delayed recovery
+14,NOISE_THEN_PRESSURE,TELEMETRY_INCONSISTENCY,0.8,ISOLATE_TELEMETRY_STREAM,34.62,0.0,0.0,40.0,35.71,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+15,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.83,RESTART_SERVICE,32.14,0.0,0.0,40.0,33.33,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+16,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.9,RESTART_SERVICE,30.0,0.0,0.0,40.0,31.25,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+17,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.74,RESTART_SERVICE,28.12,0.0,0.0,40.0,29.41,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+18,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.73,ISOLATE_TELEMETRY_STREAM,26.47,0.0,0.0,30.0,27.78,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+19,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.88,ISOLATE_TELEMETRY_STREAM,25.0,0.0,0.0,20.0,26.32,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+20,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.74,ISOLATE_TELEMETRY_STREAM,23.68,0.0,0.0,20.0,25.0,0.0,45.0,92.5,29.55,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+21,MIXED_SAFE_SEQUENCE,TRAFFIC_SPIKE,0.8,APPLY_RATE_LIMIT,22.5,0.0,0.0,10.0,23.81,0.0,45.0,93.5,33.88,True,False,True,local pressure=5; partial/delayed recovery
+22,MIXED_SAFE_SEQUENCE,AUTH_ANOMALY,0.74,BLOCK_SUSPICIOUS_TOKEN,21.43,100.0,100.0,10.0,27.27,0.0,0.0,100.0,71.3,True,False,False,local pressure=5
+23,MIXED_SAFE_SEQUENCE,MISSION_COMMAND_ANOMALY,0.69,ESCALATE_ALERT,25.0,100.0,100.0,20.0,30.43,0.0,0.0,100.0,71.5,True,False,False,local pressure=5
+24,MIXED_SAFE_SEQUENCE,SERVICE_DEGRADATION,0.71,RESTART_SERVICE,28.26,0.0,0.0,20.0,29.17,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+25,NOISE_THEN_PRESSURE,LOG_NOISE,0.24,OBSERVE_ONLY,27.08,100.0,100.0,30.0,32.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=4
+26,NOISE_THEN_PRESSURE,LOG_NOISE,0.24,OBSERVE_ONLY,30.0,100.0,100.0,40.0,34.62,0.0,0.0,100.0,72.0,True,False,False,local pressure=3
+27,NOISE_THEN_PRESSURE,TRAFFIC_SPIKE,0.81,APPLY_RATE_LIMIT,32.0,0.0,0.0,40.0,33.33,0.0,45.0,93.5,31.38,True,False,True,local pressure=4; partial/delayed recovery
+28,NOISE_THEN_PRESSURE,TELEMETRY_INCONSISTENCY,0.79,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,40.0,32.14,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+29,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.85,RESTART_SERVICE,32.0,0.0,0.0,40.0,31.03,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+30,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.91,RESTART_SERVICE,32.0,0.0,0.0,40.0,30.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+31,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.78,RESTART_SERVICE,32.0,0.0,0.0,40.0,29.03,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+32,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.74,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,30.0,28.12,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+33,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.86,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,20.0,27.27,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+34,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.82,ISOLATE_TELEMETRY_STREAM,28.0,0.0,0.0,20.0,26.47,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+35,MIXED_SAFE_SEQUENCE,TRAFFIC_SPIKE,0.77,APPLY_RATE_LIMIT,24.0,0.0,0.0,10.0,25.71,0.0,45.0,93.5,32.38,True,False,True,local pressure=5; partial/delayed recovery
+36,MIXED_SAFE_SEQUENCE,AUTH_ANOMALY,0.72,BLOCK_SUSPICIOUS_TOKEN,24.0,100.0,100.0,10.0,27.78,0.0,0.0,100.0,71.3,True,False,False,local pressure=5
+37,MIXED_SAFE_SEQUENCE,MISSION_COMMAND_ANOMALY,0.73,ESCALATE_ALERT,24.0,100.0,100.0,20.0,29.73,0.0,0.0,100.0,71.5,True,False,False,local pressure=5
+38,MIXED_SAFE_SEQUENCE,SERVICE_DEGRADATION,0.75,RESTART_SERVICE,24.0,0.0,0.0,20.0,28.95,0.0,65.0,91.5,23.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+39,NOISE_THEN_PRESSURE,LOG_NOISE,0.23,OBSERVE_ONLY,24.0,100.0,100.0,30.0,30.77,0.0,0.0,100.0,72.0,True,False,False,local pressure=4
+40,NOISE_THEN_PRESSURE,LOG_NOISE,0.26,OBSERVE_ONLY,28.0,100.0,100.0,40.0,32.5,0.0,0.0,100.0,72.0,True,False,False,local pressure=3
+41,NOISE_THEN_PRESSURE,TRAFFIC_SPIKE,0.86,APPLY_RATE_LIMIT,32.0,0.0,0.0,40.0,31.71,0.0,45.0,93.5,31.38,True,False,True,local pressure=4; partial/delayed recovery
+42,NOISE_THEN_PRESSURE,TELEMETRY_INCONSISTENCY,0.78,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,40.0,30.95,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+43,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.8,RESTART_SERVICE,32.0,0.0,0.0,40.0,30.23,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+44,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.88,RESTART_SERVICE,32.0,0.0,0.0,40.0,29.55,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+45,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.73,RESTART_SERVICE,32.0,0.0,0.0,40.0,28.89,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+46,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.7,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,30.0,28.26,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+47,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.83,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,20.0,27.66,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+48,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.76,ISOLATE_TELEMETRY_STREAM,28.0,0.0,0.0,20.0,27.08,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+49,MIXED_SAFE_SEQUENCE,TRAFFIC_SPIKE,0.79,APPLY_RATE_LIMIT,24.0,0.0,0.0,10.0,26.53,0.0,45.0,93.5,32.38,True,False,True,local pressure=5; partial/delayed recovery
+50,MIXED_SAFE_SEQUENCE,AUTH_ANOMALY,0.71,BLOCK_SUSPICIOUS_TOKEN,24.0,100.0,100.0,10.0,28.0,0.0,0.0,100.0,71.3,True,False,False,local pressure=5
+51,MIXED_SAFE_SEQUENCE,MISSION_COMMAND_ANOMALY,0.69,ESCALATE_ALERT,24.0,100.0,100.0,20.0,28.0,0.0,0.0,100.0,71.5,True,False,False,local pressure=5
+52,MIXED_SAFE_SEQUENCE,SERVICE_DEGRADATION,0.72,RESTART_SERVICE,24.0,0.0,0.0,20.0,28.0,0.0,65.0,91.5,23.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+53,NOISE_THEN_PRESSURE,LOG_NOISE,0.18,OBSERVE_ONLY,24.0,100.0,100.0,30.0,30.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=4
+54,NOISE_THEN_PRESSURE,LOG_NOISE,0.28,OBSERVE_ONLY,28.0,100.0,100.0,40.0,32.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=3
+55,NOISE_THEN_PRESSURE,TRAFFIC_SPIKE,0.85,APPLY_RATE_LIMIT,32.0,0.0,0.0,40.0,32.0,0.0,45.0,93.5,31.38,True,False,True,local pressure=4; partial/delayed recovery
+56,NOISE_THEN_PRESSURE,TELEMETRY_INCONSISTENCY,0.83,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,40.0,32.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+57,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.79,RESTART_SERVICE,32.0,0.0,0.0,40.0,32.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+58,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.92,RESTART_SERVICE,32.0,0.0,0.0,40.0,30.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+59,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.73,RESTART_SERVICE,32.0,0.0,0.0,40.0,28.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+60,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.71,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,30.0,28.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+61,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.9,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,20.0,26.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+62,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.79,ISOLATE_TELEMETRY_STREAM,28.0,0.0,0.0,20.0,24.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+63,MIXED_SAFE_SEQUENCE,TRAFFIC_SPIKE,0.78,APPLY_RATE_LIMIT,24.0,0.0,0.0,10.0,24.0,0.0,45.0,93.5,32.38,True,False,True,local pressure=5; partial/delayed recovery
+64,MIXED_SAFE_SEQUENCE,AUTH_ANOMALY,0.73,BLOCK_SUSPICIOUS_TOKEN,24.0,100.0,100.0,10.0,26.0,0.0,0.0,100.0,71.3,True,False,False,local pressure=5
+65,MIXED_SAFE_SEQUENCE,MISSION_COMMAND_ANOMALY,0.73,ESCALATE_ALERT,24.0,100.0,100.0,20.0,28.0,0.0,0.0,100.0,71.5,True,False,False,local pressure=5
+66,MIXED_SAFE_SEQUENCE,SERVICE_DEGRADATION,0.76,RESTART_SERVICE,24.0,0.0,0.0,20.0,28.0,0.0,65.0,91.5,23.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+67,NOISE_THEN_PRESSURE,LOG_NOISE,0.18,OBSERVE_ONLY,24.0,100.0,100.0,30.0,30.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=4
+68,NOISE_THEN_PRESSURE,LOG_NOISE,0.21,OBSERVE_ONLY,28.0,100.0,100.0,40.0,32.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=3
+69,NOISE_THEN_PRESSURE,TRAFFIC_SPIKE,0.83,APPLY_RATE_LIMIT,32.0,0.0,0.0,40.0,32.0,0.0,45.0,93.5,31.38,True,False,True,local pressure=4; partial/delayed recovery
+70,NOISE_THEN_PRESSURE,TELEMETRY_INCONSISTENCY,0.8,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,40.0,32.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+71,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.8,RESTART_SERVICE,32.0,0.0,0.0,40.0,32.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+72,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.94,RESTART_SERVICE,32.0,0.0,0.0,40.0,30.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+73,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.79,RESTART_SERVICE,32.0,0.0,0.0,40.0,28.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+74,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.71,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,30.0,28.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+75,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.87,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,20.0,26.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+76,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.77,ISOLATE_TELEMETRY_STREAM,28.0,0.0,0.0,20.0,24.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+77,MIXED_SAFE_SEQUENCE,TRAFFIC_SPIKE,0.81,APPLY_RATE_LIMIT,24.0,0.0,0.0,10.0,24.0,0.0,45.0,93.5,32.38,True,False,True,local pressure=5; partial/delayed recovery
+78,MIXED_SAFE_SEQUENCE,AUTH_ANOMALY,0.72,BLOCK_SUSPICIOUS_TOKEN,24.0,100.0,100.0,10.0,26.0,0.0,0.0,100.0,71.3,True,False,False,local pressure=5
+79,MIXED_SAFE_SEQUENCE,MISSION_COMMAND_ANOMALY,0.68,ESCALATE_ALERT,24.0,100.0,100.0,20.0,28.0,0.0,0.0,100.0,71.5,True,False,False,local pressure=5
+80,MIXED_SAFE_SEQUENCE,SERVICE_DEGRADATION,0.72,RESTART_SERVICE,24.0,0.0,0.0,20.0,28.0,0.0,65.0,91.5,23.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+81,NOISE_THEN_PRESSURE,LOG_NOISE,0.2,OBSERVE_ONLY,24.0,100.0,100.0,30.0,30.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=4
+82,NOISE_THEN_PRESSURE,LOG_NOISE,0.23,OBSERVE_ONLY,28.0,100.0,100.0,40.0,32.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=3
+83,NOISE_THEN_PRESSURE,TRAFFIC_SPIKE,0.85,APPLY_RATE_LIMIT,32.0,0.0,0.0,40.0,32.0,0.0,45.0,93.5,31.38,True,False,True,local pressure=4; partial/delayed recovery
+84,NOISE_THEN_PRESSURE,TELEMETRY_INCONSISTENCY,0.85,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,40.0,32.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+85,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.81,RESTART_SERVICE,32.0,0.0,0.0,40.0,32.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+86,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.88,RESTART_SERVICE,32.0,0.0,0.0,40.0,30.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+87,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.8,RESTART_SERVICE,32.0,0.0,0.0,40.0,28.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+88,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.72,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,30.0,28.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+89,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.83,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,20.0,26.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+90,TELEMETRY_DRIFT,TELEMETRY_INCONSISTENCY,0.74,ISOLATE_TELEMETRY_STREAM,28.0,0.0,0.0,20.0,24.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+91,MIXED_SAFE_SEQUENCE,TRAFFIC_SPIKE,0.75,APPLY_RATE_LIMIT,24.0,0.0,0.0,10.0,24.0,0.0,45.0,93.5,32.38,True,False,True,local pressure=5; partial/delayed recovery
+92,MIXED_SAFE_SEQUENCE,AUTH_ANOMALY,0.73,BLOCK_SUSPICIOUS_TOKEN,24.0,100.0,100.0,10.0,26.0,0.0,0.0,100.0,71.3,True,False,False,local pressure=5
+93,MIXED_SAFE_SEQUENCE,MISSION_COMMAND_ANOMALY,0.72,ESCALATE_ALERT,24.0,100.0,100.0,20.0,28.0,0.0,0.0,100.0,71.5,True,False,False,local pressure=5
+94,MIXED_SAFE_SEQUENCE,SERVICE_DEGRADATION,0.73,RESTART_SERVICE,24.0,0.0,0.0,20.0,28.0,0.0,65.0,91.5,23.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+95,NOISE_THEN_PRESSURE,LOG_NOISE,0.17,OBSERVE_ONLY,24.0,100.0,100.0,30.0,30.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=4
+96,NOISE_THEN_PRESSURE,LOG_NOISE,0.24,OBSERVE_ONLY,28.0,100.0,100.0,40.0,32.0,0.0,0.0,100.0,72.0,True,False,False,local pressure=3
+97,NOISE_THEN_PRESSURE,TRAFFIC_SPIKE,0.88,APPLY_RATE_LIMIT,32.0,0.0,0.0,40.0,32.0,0.0,45.0,93.5,31.38,True,False,True,local pressure=4; partial/delayed recovery
+98,NOISE_THEN_PRESSURE,TELEMETRY_INCONSISTENCY,0.82,ISOLATE_TELEMETRY_STREAM,32.0,0.0,0.0,40.0,32.0,0.0,45.0,92.5,28.22,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=22.0; partial/delayed recovery
+99,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.86,RESTART_SERVICE,32.0,0.0,0.0,40.0,32.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
+100,REPEATED_SERVICE_DEGRADATION,SERVICE_DEGRADATION,0.93,RESTART_SERVICE,32.0,0.0,0.0,40.0,30.0,0.0,65.0,91.5,22.48,True,False,True,local pressure=5; repeated anomaly pressure; higher simulated action cost=26.0; partial/delayed recovery
