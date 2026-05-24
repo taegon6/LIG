@@ -40,3 +40,14 @@ def test_selfplay_round_includes_dah_fields() -> None:
     assert "dah_scores" in body
     assert "strategy_notes" in body
     assert "attack_score" in body["dah_scores"]
+    assert "red_success_score" in body["dah_scores"]
+    assert "blue_defense_score" in body["dah_scores"]
+    assert "pre_sla" in body
+    assert "post_event_sla" in body
+    assert "post_action_sla" in body
+    assert "sla_delta" in body
+    assert "recovery_delta" in body
+    assert "recovery_event" in body
+    assert "knowledge_mapping" in body
+    assert "red_event" in body["knowledge_mapping"]
+    assert "blue_action" in body["knowledge_mapping"]

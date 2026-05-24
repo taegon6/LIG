@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from math import log2
 from pathlib import Path
 from typing import Any
+
+from core.event_schema import now_iso
+from simulator.scenarios import SAFE_SCENARIOS
 
 
 DB_PATH = Path(os.getenv("AEGIS_DB_PATH", "data/aegis_swarm.db"))
@@ -54,8 +58,30 @@ def init_db() -> None:
                 false_positive_penalty REAL NOT NULL,
                 total_utility REAL NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS scenario_stats (
+                event_type TEXT PRIMARY KEY,
+                attempts INTEGER NOT NULL,
+                red_success_count INTEGER NOT NULL,
+                blue_success_count INTEGER NOT NULL,
+                avg_sla_drop REAL NOT NULL,
+                avg_recovery_delta REAL NOT NULL,
+                false_positive_count INTEGER NOT NULL,
+                most_effective_blue_action TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL
+            );
             """
         )
+        score_columns = {row["name"] for row in conn.execute("PRAGMA table_info(scores)").fetchall()}
+        score_migrations = {
+            "red_success_score": "ALTER TABLE scores ADD COLUMN red_success_score REAL NOT NULL DEFAULT 0",
+            "blue_defense_score": "ALTER TABLE scores ADD COLUMN blue_defense_score REAL NOT NULL DEFAULT 0",
+            "sla_preservation_score": "ALTER TABLE scores ADD COLUMN sla_preservation_score REAL NOT NULL DEFAULT 100",
+            "action_cost": "ALTER TABLE scores ADD COLUMN action_cost REAL NOT NULL DEFAULT 0",
+        }
+        for column, statement in score_migrations.items():
+            if column not in score_columns:
+                conn.execute(statement)
 
 
 def _rows_to_dicts(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
@@ -137,8 +163,9 @@ def insert_score(score: dict[str, Any]) -> dict[str, Any]:
             """
             INSERT INTO scores (
                 timestamp, attack_score, defense_score, sla_score, recovery_score,
-                false_positive_penalty, total_utility
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                false_positive_penalty, total_utility, red_success_score,
+                blue_defense_score, sla_preservation_score, action_cost
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 score["timestamp"],
@@ -148,6 +175,10 @@ def insert_score(score: dict[str, Any]) -> dict[str, Any]:
                 score["recovery_score"],
                 score["false_positive_penalty"],
                 score["total_utility"],
+                score.get("red_success_score", score["attack_score"]),
+                score.get("blue_defense_score", score["defense_score"]),
+                score.get("sla_preservation_score", score["sla_score"]),
+                score.get("action_cost", 0.0),
             ),
         )
         conn.commit()
@@ -160,3 +191,129 @@ def recent_scores(limit: int = 50) -> list[dict[str, Any]]:
     with get_connection() as conn:
         rows = conn.execute("SELECT * FROM scores ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
     return _rows_to_dicts(rows)
+
+
+def update_scenario_stats(
+    event_type: str,
+    blue_action: str,
+    score: dict[str, Any],
+    sla_drop: float,
+    recovery_delta: float,
+) -> dict[str, Any]:
+    red_success = float(score.get("red_success_score", score.get("attack_score", 0.0))) >= 50.0
+    blue_success = (
+        float(score.get("blue_defense_score", score.get("defense_score", 0.0))) >= 70.0
+        and float(score.get("red_success_score", score.get("attack_score", 0.0))) < 50.0
+    )
+    false_positive = float(score.get("false_positive_penalty", 0.0)) > 0.0
+    timestamp = now_iso()
+
+    with get_connection() as conn:
+        existing = conn.execute(
+            "SELECT * FROM scenario_stats WHERE event_type = ?",
+            (event_type,),
+        ).fetchone()
+        if existing is None:
+            attempts = 1
+            red_success_count = 1 if red_success else 0
+            blue_success_count = 1 if blue_success else 0
+            false_positive_count = 1 if false_positive else 0
+            avg_sla_drop = round(max(0.0, sla_drop), 2)
+            avg_recovery_delta = round(recovery_delta, 2)
+            most_effective_blue_action = blue_action if blue_success else ""
+            conn.execute(
+                """
+                INSERT INTO scenario_stats (
+                    event_type, attempts, red_success_count, blue_success_count,
+                    avg_sla_drop, avg_recovery_delta, false_positive_count,
+                    most_effective_blue_action, last_seen_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event_type,
+                    attempts,
+                    red_success_count,
+                    blue_success_count,
+                    avg_sla_drop,
+                    avg_recovery_delta,
+                    false_positive_count,
+                    most_effective_blue_action,
+                    timestamp,
+                ),
+            )
+        else:
+            row = dict(existing)
+            attempts = int(row["attempts"]) + 1
+            red_success_count = int(row["red_success_count"]) + (1 if red_success else 0)
+            blue_success_count = int(row["blue_success_count"]) + (1 if blue_success else 0)
+            false_positive_count = int(row["false_positive_count"]) + (1 if false_positive else 0)
+            avg_sla_drop = round(
+                ((float(row["avg_sla_drop"]) * int(row["attempts"])) + max(0.0, sla_drop)) / attempts,
+                2,
+            )
+            avg_recovery_delta = round(
+                ((float(row["avg_recovery_delta"]) * int(row["attempts"])) + recovery_delta) / attempts,
+                2,
+            )
+            most_effective_blue_action = (
+                blue_action if blue_success else str(row["most_effective_blue_action"] or "")
+            )
+            conn.execute(
+                """
+                UPDATE scenario_stats
+                SET attempts = ?,
+                    red_success_count = ?,
+                    blue_success_count = ?,
+                    avg_sla_drop = ?,
+                    avg_recovery_delta = ?,
+                    false_positive_count = ?,
+                    most_effective_blue_action = ?,
+                    last_seen_at = ?
+                WHERE event_type = ?
+                """,
+                (
+                    attempts,
+                    red_success_count,
+                    blue_success_count,
+                    avg_sla_drop,
+                    avg_recovery_delta,
+                    false_positive_count,
+                    most_effective_blue_action,
+                    timestamp,
+                    event_type,
+                ),
+            )
+        conn.commit()
+        saved = conn.execute("SELECT * FROM scenario_stats WHERE event_type = ?", (event_type,)).fetchone()
+    return dict(saved)
+
+
+def scenario_stats() -> list[dict[str, Any]]:
+    with get_connection() as conn:
+        rows = conn.execute("SELECT * FROM scenario_stats ORDER BY event_type").fetchall()
+    return _rows_to_dicts(rows)
+
+
+def scenario_stats_summary() -> dict[str, Any]:
+    rows = scenario_stats()
+    total_attempts = sum(int(row["attempts"]) for row in rows)
+    attempted_types = {row["event_type"] for row in rows if int(row["attempts"]) > 0}
+    coverage_score = round((len(attempted_types) / len(SAFE_SCENARIOS)) * 100.0, 2)
+
+    if total_attempts <= 0:
+        scenario_entropy = 0.0
+    else:
+        entropy = 0.0
+        for row in rows:
+            probability = int(row["attempts"]) / total_attempts
+            if probability > 0:
+                entropy -= probability * log2(probability)
+        max_entropy = log2(len(SAFE_SCENARIOS))
+        scenario_entropy = round((entropy / max_entropy) * 100.0, 2) if max_entropy else 0.0
+
+    return {
+        "scenario_stats": rows,
+        "scenario_entropy": scenario_entropy,
+        "coverage_score": coverage_score,
+        "total_attempts": total_attempts,
+    }

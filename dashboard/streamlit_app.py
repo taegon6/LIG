@@ -12,31 +12,32 @@ API_URL = os.getenv("AEGIS_API_URL", "http://localhost:8000").rstrip("/")
 
 
 EVENT_LABELS = {
-    "NORMAL": ("Normal", "정상 운영 로그"),
-    "TRAFFIC_SPIKE": ("Traffic Spike", "요청이 갑자기 몰리는 상황"),
-    "AUTH_ANOMALY": ("Auth Anomaly", "이상한 인증 시도가 늘어난 상황"),
-    "TELEMETRY_INCONSISTENCY": ("Telemetry Issue", "차량 센서/위치 데이터가 흔들리는 상황"),
-    "SERVICE_DEGRADATION": ("Service Slowdown", "서비스가 느려지거나 오류가 늘어난 상황"),
-    "MISSION_COMMAND_ANOMALY": ("Command Anomaly", "평소와 다른 임무 명령이 들어온 상황"),
-    "LOG_NOISE": ("Log Noise", "큰 위험은 아니지만 로그가 지저분해진 상황"),
+    "NORMAL": ("Normal", "정상 운영"),
+    "TRAFFIC_SPIKE": ("Traffic Spike", "요청 폭주"),
+    "AUTH_ANOMALY": ("Auth Anomaly", "인증 이상"),
+    "TELEMETRY_INCONSISTENCY": ("Telemetry Issue", "센서/위치 데이터 불일치"),
+    "SERVICE_DEGRADATION": ("Service Slowdown", "서비스 저하"),
+    "MISSION_COMMAND_ANOMALY": ("Command Anomaly", "임무 명령 이상"),
+    "LOG_NOISE": ("Log Noise", "로그 노이즈"),
+    "RECOVERY_HEALTH_CHECK": ("Recovery Check", "방어 후 상태 점검"),
 }
 
 ACTION_LABELS = {
-    "OBSERVE_ONLY": ("Observe", "지켜보기"),
-    "APPLY_RATE_LIMIT": ("Rate Limit", "요청량을 줄여 서비스 안정화"),
-    "BLOCK_SUSPICIOUS_TOKEN": ("Block Token", "의심 인증 토큰 차단"),
-    "ISOLATE_TELEMETRY_STREAM": ("Isolate Telemetry", "센서/통신 흐름 격리"),
-    "RESTART_SERVICE": ("Restart", "서비스 재시작으로 복구 우선"),
-    "ROLLBACK_VERSION": ("Rollback", "안정 버전으로 되돌리기"),
-    "DEPLOY_DECOY": ("Deploy Decoy", "가짜 표적 배치"),
-    "ESCALATE_ALERT": ("Escalate", "사람 담당자에게 경고"),
+    "OBSERVE_ONLY": ("Observe", "모니터링만 수행"),
+    "APPLY_RATE_LIMIT": ("Rate Limit", "요청량 제한"),
+    "BLOCK_SUSPICIOUS_TOKEN": ("Block Token", "의심 세션 차단"),
+    "ISOLATE_TELEMETRY_STREAM": ("Isolate Telemetry", "텔레메트리 격리"),
+    "RESTART_SERVICE": ("Restart", "서비스 재시작"),
+    "ROLLBACK_VERSION": ("Rollback", "안정 버전 복구"),
+    "DEPLOY_DECOY": ("Deploy Decoy", "기만 환경 배치"),
+    "ESCALATE_ALERT": ("Escalate", "사람에게 경고"),
 }
 
 MODE_LABELS = {
-    "BALANCED": ("Balanced", "보안 대응과 임무 지속성을 균형 있게 유지"),
-    "RECOVERY_FIRST": ("Recovery First", "SLA가 낮아 복구를 최우선"),
-    "DEFENSE_HARDENING": ("Defense Hardening", "방어 실패가 누적되어 보안 강화"),
-    "RED_EXPLORATION": ("Red Exploration", "다양한 안전 시나리오 탐색"),
+    "BALANCED": ("Balanced", "보안과 임무 지속성 균형"),
+    "RECOVERY_FIRST": ("Recovery First", "복구 우선"),
+    "DEFENSE_HARDENING": ("Defense Hardening", "방어 강화"),
+    "RED_EXPLORATION": ("Red Exploration", "안전 시나리오 탐색"),
 }
 
 
@@ -52,11 +53,6 @@ def api_post(path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]
     return response.json()
 
 
-def trigger_scenario(name: str, intensity: float) -> None:
-    result = api_post("/simulate/event", {"scenario": name, "intensity": intensity})
-    st.session_state["last_result"] = result
-
-
 def fmt_score(value: Any, suffix: str = "") -> str:
     if value in (None, ""):
         return "-"
@@ -66,22 +62,13 @@ def fmt_score(value: Any, suffix: str = "") -> str:
 
 
 def event_name(event_type: str | None) -> str:
-    if not event_type:
-        return "-"
-    label, description = EVENT_LABELS.get(event_type, (event_type, event_type))
+    label, description = EVENT_LABELS.get(str(event_type), (str(event_type), str(event_type)))
     return f"{label} - {description}"
 
 
 def action_name(action_type: str | None) -> str:
-    if not action_type:
-        return "-"
-    label, description = ACTION_LABELS.get(action_type, (action_type, action_type))
+    label, description = ACTION_LABELS.get(str(action_type), (str(action_type), str(action_type)))
     return f"{label} - {description}"
-
-
-def mode_name(mode: str) -> str:
-    label, description = MODE_LABELS.get(mode, (mode, mode))
-    return f"{label}: {description}"
 
 
 def health_badge(sla_score: float, mission_status: str, comm_status: str) -> tuple[str, str]:
@@ -94,77 +81,144 @@ def health_badge(sla_score: float, mission_status: str, comm_status: str) -> tup
     return "안정", "임무와 서비스 품질이 안정적으로 유지되고 있습니다."
 
 
-def simple_events(events: list[dict[str, Any]]) -> pd.DataFrame:
+def trigger_scenario(name: str, intensity: float) -> None:
+    st.session_state["last_result"] = api_post("/simulate/event", {"scenario": name, "intensity": intensity})
+
+
+def run_selfplay_round() -> None:
+    result = api_post("/selfplay/round")
+    st.session_state["last_result"] = result
+    st.session_state.setdefault("round_history", []).append(
+        {
+            "round": len(st.session_state.get("round_history", [])) + 1,
+            "commander_mode": result.get("commander_mode"),
+            "event_type": result.get("red_event", {}).get("event_type"),
+            "blue_action": result.get("blue_decision", {}).get("selected_action"),
+            "pre_sla": result.get("pre_sla"),
+            "post_event_sla": result.get("post_event_sla"),
+            "post_action_sla": result.get("post_action_sla"),
+            "total_utility": result.get("score", {}).get("total_utility"),
+        }
+    )
+
+
+def events_frame(events: list[dict[str, Any]]) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "time": str(event.get("timestamp", ""))[11:19],
+                "event": event_name(event.get("event_type")),
+                "severity": event.get("severity"),
+                "latency_ms": event.get("latency_ms"),
+                "mission": event.get("mission_status"),
+                "sla_ok": event.get("sla_ok"),
+                "description": event.get("description"),
+            }
+            for event in events
+        ]
+    )
+
+
+def actions_frame(actions: list[dict[str, Any]]) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "time": str(action.get("timestamp", ""))[11:19],
+                "blue_action": action_name(action.get("action_type")),
+                "risk": action.get("risk_level"),
+                "confidence": action.get("confidence"),
+                "sla_impact": action.get("expected_sla_impact"),
+                "reason": action.get("reason"),
+            }
+            for action in actions
+        ]
+    )
+
+
+def score_frame(scores: list[dict[str, Any]]) -> pd.DataFrame:
+    rows = list(reversed(scores))
+    return pd.DataFrame(
+        [
+            {
+                "round": index + 1,
+                "sla_score": row.get("sla_score"),
+                "red_success": row.get("red_success_score", row.get("attack_score")),
+                "blue_defense": row.get("blue_defense_score", row.get("defense_score")),
+                "utility": row.get("total_utility"),
+            }
+            for index, row in enumerate(rows)
+        ]
+    )
+
+
+def scenario_frame(stats: dict[str, Any]) -> pd.DataFrame:
     rows = []
-    for event in events:
+    for row in stats.get("scenario_stats", []):
+        attempts = max(1, int(row.get("attempts", 0)))
         rows.append(
             {
-                "시간": str(event.get("timestamp", ""))[11:19],
-                "상황": event_name(event.get("event_type")),
-                "강도": fmt_score(event.get("severity")),
-                "지연(ms)": event.get("latency_ms"),
-                "임무": event.get("mission_status"),
-                "설명": event.get("description"),
+                "scenario": EVENT_LABELS.get(row.get("event_type"), (row.get("event_type"), ""))[0],
+                "attempts": row.get("attempts"),
+                "red_success_rate": round(int(row.get("red_success_count", 0)) / attempts, 3),
+                "blue_success_rate": round(int(row.get("blue_success_count", 0)) / attempts, 3),
+                "avg_sla_drop": row.get("avg_sla_drop"),
+                "avg_recovery_delta": row.get("avg_recovery_delta"),
+                "false_positives": row.get("false_positive_count"),
+                "best_blue_action": row.get("most_effective_blue_action") or "-",
             }
         )
     return pd.DataFrame(rows)
 
 
-def simple_actions(actions: list[dict[str, Any]]) -> pd.DataFrame:
-    rows = []
-    for action in actions:
-        rows.append(
-            {
-                "시간": str(action.get("timestamp", ""))[11:19],
-                "AI 판단": action_name(action.get("action_type")),
-                "위험도": action.get("risk_level"),
-                "확신도": fmt_score(action.get("confidence")),
-                "SLA 영향": action.get("expected_sla_impact"),
-                "이유": action.get("reason"),
-            }
+def latest_round_summary(result: dict[str, Any]) -> None:
+    red_event = result.get("red_event", {})
+    blue = result.get("blue_decision", {})
+    score = result.get("score", {})
+    mapping = result.get("knowledge_mapping", {})
+
+    st.subheader("Latest Self-Play Round Summary")
+    st.caption("Attack event -> Blue decision -> Action -> SLA recovery -> Score update")
+    chain = st.columns(5)
+    chain[0].metric("Attack Event", EVENT_LABELS.get(red_event.get("event_type"), ("-", ""))[0])
+    chain[0].caption(f"severity {fmt_score(red_event.get('severity'))}")
+    chain[1].metric("Blue Decision", blue.get("risk_level", "-"))
+    chain[1].caption(f"risk {fmt_score(blue.get('risk_score'))}")
+    chain[2].metric("Action", ACTION_LABELS.get(blue.get("selected_action"), ("-", ""))[0])
+    chain[2].caption(mapping.get("blue_action", {}).get("category", "-"))
+    chain[3].metric("SLA Recovery", fmt_score(result.get("recovery_delta"), " pts"))
+    chain[3].caption(f"{fmt_score(result.get('pre_sla'))} -> {fmt_score(result.get('post_action_sla'))}")
+    chain[4].metric("Utility", fmt_score(score.get("total_utility")))
+    chain[4].caption(f"Red success {fmt_score(score.get('red_success_score'))}")
+
+    reasoning = result.get("strategy_notes", {})
+    st.info(
+        "\n\n".join(
+            [
+                f"Commander: {reasoning.get('commander', '-')}",
+                f"Red: {reasoning.get('red', '-')}",
+                f"Blue: {reasoning.get('blue', '-')}",
+            ]
         )
-    return pd.DataFrame(rows)
+    )
+    if mapping:
+        map_cols = st.columns(2)
+        map_cols[0].markdown("**ATT&CK-style event mapping**")
+        map_cols[0].json(mapping.get("red_event", {}))
+        map_cols[1].markdown("**D3FEND-style action mapping**")
+        map_cols[1].json(mapping.get("blue_action", {}))
 
 
-def explain_last_result(result: dict[str, Any]) -> None:
-    red_event = result.get("red_event") or result.get("event") or {}
-    blue_decision = result.get("blue_decision") or {}
-    score = result.get("dah_scores") or result.get("score") or {}
-    notes = result.get("strategy_notes") or {}
-
-    st.markdown("#### 이번 라운드 요약")
-    cols = st.columns(4)
-    cols[0].metric("발생한 상황", EVENT_LABELS.get(red_event.get("event_type"), ("-", ""))[0])
-    cols[1].metric("AI 위험 판단", blue_decision.get("risk_level", "-"))
-    cols[2].metric("선택한 대응", ACTION_LABELS.get(blue_decision.get("selected_action"), ("-", ""))[0])
-    cols[3].metric("총 효용", fmt_score(score.get("total_utility")))
-
-    if notes:
-        st.info(
-            "\n\n".join(
-                [
-                    f"Commander: {notes.get('commander', '-')}",
-                    f"Red: {notes.get('red', '-')}",
-                    f"Blue: {notes.get('blue', '-')}",
-                ]
-            )
-        )
-
-    with st.expander("개발자용 JSON 보기"):
-        st.json(result)
-
-
-st.set_page_config(page_title="Aegis-Swarm", page_icon="A", layout="wide")
-
-st.title("Aegis-Swarm 상황판")
-st.caption("방산 임무 서비스에서 AI가 이상 상황을 감지하고, 임무를 멈추지 않도록 방어 결정을 내리는 안전한 로컬 시뮬레이션")
+st.set_page_config(page_title="Aegis-Swarm v2", page_icon="A", layout="wide")
+st.title("Aegis-Swarm v2 Judging Dashboard")
+st.caption("안전한 로컬 Red-Blue self-play로 SLA 회복, 방어 판단, scenario memory, scoring evidence를 보여줍니다.")
 
 try:
     health = api_get("/health")
     mission = api_get("/mission/status")
     vehicle = api_get("/vehicle/state")
     adapter = api_get("/adapter/status")
-    logs = api_get("/logs/recent?limit=25")
+    logs = api_get("/logs/recent?limit=100")
+    scenario_stats = api_get("/stats/scenarios")
 except requests.RequestException as exc:
     st.error(f"API 서버에 연결할 수 없습니다: {exc}")
     st.stop()
@@ -182,98 +236,120 @@ sla_score = float(health.get("sla_score", 0.0))
 status_label, status_text = health_badge(sla_score, mission_status, comm_status)
 commander_mode = mission.get("commander_mode", "BALANCED")
 
-overview = st.columns([1.2, 1, 1, 1])
-overview[0].metric("현재 상태", status_label)
+overview = st.columns(6)
+overview[0].metric("Current State", status_label)
 overview[0].caption(status_text)
-overview[1].metric("임무 상태", mission_status)
-overview[1].caption(f"통신 상태: {comm_status}")
-overview[2].metric("서비스 품질", f"{sla_score:.1f}%")
-overview[2].caption("95% 이상이면 안정권")
-overview[3].metric("Commander", MODE_LABELS.get(commander_mode, (commander_mode, ""))[0])
-overview[3].caption(MODE_LABELS.get(commander_mode, ("", ""))[1])
+overview[1].metric("SLA", f"{sla_score:.1f}%")
+overview[1].caption("임무 서비스 가용성")
+overview[2].metric("Commander", MODE_LABELS.get(commander_mode, (commander_mode, ""))[0])
+overview[2].caption(MODE_LABELS.get(commander_mode, ("", ""))[1])
+overview[3].metric("Red Success", fmt_score(latest_score.get("red_success_score", latest_score.get("attack_score"))))
+overview[3].caption("낮을수록 방어 우수")
+overview[4].metric("Blue Defense", fmt_score(latest_score.get("blue_defense_score", latest_score.get("defense_score"))))
+overview[4].caption("높을수록 대응 적합")
+overview[5].metric("Utility", fmt_score(latest_score.get("total_utility")))
+overview[5].caption("종합 점수")
 
 st.divider()
 
-left, right = st.columns([1.1, 0.9])
-with left:
-    st.subheader("지금 무슨 일이 일어났나")
-    if latest_event:
-        st.markdown(f"**최근 상황:** {event_name(latest_event.get('event_type'))}")
-        st.write(latest_event.get("description", "설명이 없습니다."))
-        event_cols = st.columns(4)
-        event_cols[0].metric("상황 강도", fmt_score(latest_event.get("severity")))
-        event_cols[1].metric("응답 지연", f"{latest_event.get('latency_ms', '-')} ms")
-        event_cols[2].metric("상태 코드", latest_event.get("status_code", "-"))
-        event_cols[3].metric("SLA 만족", "YES" if latest_event.get("sla_ok") else "NO")
-    else:
-        st.info("아직 이벤트가 없습니다. 아래 버튼으로 안전한 시뮬레이션을 시작해보세요.")
-
-with right:
-    st.subheader("AI가 내린 판단")
-    if latest_action:
-        st.markdown(f"**선택한 대응:** {action_name(latest_action.get('action_type'))}")
-        st.write(latest_action.get("reason", "판단 이유가 없습니다."))
-        action_cols = st.columns(3)
-        action_cols[0].metric("위험도", latest_action.get("risk_level", "-"))
-        action_cols[1].metric("확신도", fmt_score(latest_action.get("confidence")))
-        action_cols[2].metric("SLA 영향", latest_action.get("expected_sla_impact", "-"))
-    else:
-        st.info("아직 Blue Agent 판단이 없습니다. Self-play 라운드를 실행하면 판단이 표시됩니다.")
-
-st.subheader("버튼으로 보는 안전 시뮬레이션")
-st.caption("아래 버튼은 실제 공격이 아니라 로컬 SQLite에 안전한 상황 이벤트를 기록합니다.")
-scenario_cols = st.columns(5)
-with scenario_cols[0]:
-    if st.button("요청 폭주", use_container_width=True, help="TRAFFIC_SPIKE 이벤트 생성"):
+button_cols = st.columns(5)
+with button_cols[0]:
+    if st.button("요청 폭주", use_container_width=True):
         trigger_scenario("TRAFFIC_SPIKE", 0.7)
-with scenario_cols[1]:
-    if st.button("인증 이상", use_container_width=True, help="AUTH_ANOMALY 이벤트 생성"):
+with button_cols[1]:
+    if st.button("인증 이상", use_container_width=True):
         trigger_scenario("AUTH_ANOMALY", 0.7)
-with scenario_cols[2]:
-    if st.button("센서 불일치", use_container_width=True, help="TELEMETRY_INCONSISTENCY 이벤트 생성"):
+with button_cols[2]:
+    if st.button("센서 불일치", use_container_width=True):
         trigger_scenario("TELEMETRY_INCONSISTENCY", 0.8)
-with scenario_cols[3]:
-    if st.button("서비스 저하", use_container_width=True, help="SERVICE_DEGRADATION 이벤트 생성"):
+with button_cols[3]:
+    if st.button("서비스 저하", use_container_width=True):
         trigger_scenario("SERVICE_DEGRADATION", 0.8)
-with scenario_cols[4]:
-    if st.button("AI 한 판 실행", use_container_width=True, type="primary", help="Red-Blue-Commander 전체 라운드 실행"):
-        st.session_state["last_result"] = api_post("/selfplay/round")
+with button_cols[4]:
+    if st.button("AI Self-Play 1 Round", use_container_width=True, type="primary"):
+        run_selfplay_round()
 
-if "last_result" in st.session_state:
-    explain_last_result(st.session_state["last_result"])
+if "last_result" in st.session_state and "blue_decision" in st.session_state["last_result"]:
+    latest_round_summary(st.session_state["last_result"])
+elif latest_event or latest_action:
+    st.subheader("Latest Observed State")
+    state_cols = st.columns(3)
+    state_cols[0].markdown(f"**Attack event:** {event_name(latest_event.get('event_type'))}")
+    state_cols[1].markdown(f"**Blue action:** {action_name(latest_action.get('action_type'))}")
+    state_cols[2].markdown(f"**Score update:** utility {fmt_score(latest_score.get('total_utility'))}")
 
 st.divider()
 
-score_cols = st.columns(4)
-score_cols[0].metric("Attack Score", fmt_score(latest_score.get("attack_score")))
-score_cols[0].caption("Red가 만든 이상 상황의 강도")
-score_cols[1].metric("Defense Score", fmt_score(latest_score.get("defense_score")))
-score_cols[1].caption("Blue 대응이 상황에 맞았는지")
-score_cols[2].metric("SLA Score", f"{sla_score:.1f}%")
-score_cols[2].caption("임무 서비스가 안정적으로 유지되는지")
-score_cols[3].metric("Total Utility", fmt_score(latest_score.get("total_utility")))
-score_cols[3].caption("방어와 가용성을 합친 종합 점수")
+score_history = score_frame(scores)
+chart_cols = st.columns([1.2, 1])
+with chart_cols[0]:
+    st.subheader("SLA History")
+    if not score_history.empty:
+        st.line_chart(score_history.set_index("round")[["sla_score", "utility"]])
+    else:
+        st.info("아직 score history가 없습니다. Self-play round를 실행하세요.")
 
-with st.expander("차량/임무 상태 자세히 보기"):
-    vehicle_cols = st.columns(4)
-    position = vehicle.get("position", {})
-    vehicle_cols[0].metric("차량", vehicle.get("vehicle_type", "-"))
-    vehicle_cols[1].metric("배터리", f"{vehicle.get('battery', '-')}%")
-    vehicle_cols[2].metric("위치 X", position.get("x", "-"))
-    vehicle_cols[3].metric("위치 Y", position.get("y", "-"))
-    st.json(vehicle)
+with chart_cols[1]:
+    st.subheader("Before/After SLA Delta")
+    result = st.session_state.get("last_result", {})
+    if result and "post_action_sla" in result:
+        delta_cols = st.columns(3)
+        delta_cols[0].metric("Pre SLA", fmt_score(result.get("pre_sla"), "%"))
+        delta_cols[1].metric("After Event", fmt_score(result.get("post_event_sla"), "%"))
+        delta_cols[2].metric("After Action", fmt_score(result.get("post_action_sla"), "%"), fmt_score(result.get("recovery_delta")))
+    else:
+        st.caption("Self-play round 실행 후 pre -> event -> action SLA 변화가 표시됩니다.")
 
-with st.expander("대회 연동 준비 상태"):
-    adapter_cols = st.columns(3)
-    adapter_cols[0].metric("Adapter", adapter.get("adapter_mode", "-"))
-    adapter_cols[1].metric("Ready", "YES" if adapter.get("ready") else "NO")
-    adapter_cols[2].metric("외부 접속", "YES" if adapter.get("external_access") else "NO")
-    st.caption(adapter.get("description", ""))
+st.subheader("Commander Mode Timeline")
+round_history = pd.DataFrame(st.session_state.get("round_history", []))
+if not round_history.empty:
+    st.dataframe(round_history[["round", "commander_mode", "event_type", "blue_action", "post_action_sla", "total_utility"]], use_container_width=True, hide_index=True)
+else:
+    st.caption(f"현재 Commander mode: {MODE_LABELS.get(commander_mode, (commander_mode, ''))[0]}. 새 round를 실행하면 timeline이 쌓입니다.")
 
-tab_events, tab_actions, tab_scores = st.tabs(["상황 로그", "AI 대응 기록", "점수 기록"])
+st.divider()
+
+scenario_df = scenario_frame(scenario_stats)
+memory_cols = st.columns([1.2, 1])
+with memory_cols[0]:
+    st.subheader("Scenario Memory")
+    stat_cols = st.columns(3)
+    stat_cols[0].metric("Total Attempts", scenario_stats.get("total_attempts", 0))
+    stat_cols[1].metric("Entropy", fmt_score(scenario_stats.get("scenario_entropy")))
+    stat_cols[2].metric("Coverage", fmt_score(scenario_stats.get("coverage_score"), "%"))
+    st.dataframe(scenario_df, use_container_width=True, hide_index=True)
+
+with memory_cols[1]:
+    st.subheader("Per-Scenario Success")
+    if not scenario_df.empty:
+        st.bar_chart(scenario_df.set_index("scenario")[["red_success_rate", "blue_success_rate"]])
+    else:
+        st.info("아직 scenario stats가 없습니다.")
+
+st.divider()
+
+reason_cols = st.columns([1, 1])
+with reason_cols[0]:
+    st.subheader("Latest Blue Reasoning")
+    if latest_action:
+        st.markdown(f"**Action:** {action_name(latest_action.get('action_type'))}")
+        st.write(latest_action.get("reason", "-"))
+        st.caption(f"Risk: {latest_action.get('risk_level')} | Confidence: {fmt_score(latest_action.get('confidence'))} | SLA impact: {latest_action.get('expected_sla_impact')}")
+    else:
+        st.info("Blue decision이 아직 없습니다.")
+
+with reason_cols[1]:
+    st.subheader("Mission / Adapter")
+    mission_cols = st.columns(3)
+    mission_cols[0].metric("Vehicle", vehicle.get("vehicle_type", "-"))
+    mission_cols[1].metric("Battery", f"{vehicle.get('battery', '-')}%")
+    mission_cols[2].metric("Adapter", adapter.get("adapter_mode", "-"))
+    st.caption(f"External access: {adapter.get('external_access')} | {adapter.get('description', '')}")
+
+tab_events, tab_actions, tab_scores = st.tabs(["Event Logs", "Blue Decisions", "Scores"])
 with tab_events:
-    st.dataframe(simple_events(events), use_container_width=True, hide_index=True)
+    st.dataframe(events_frame(events), use_container_width=True, hide_index=True)
 with tab_actions:
-    st.dataframe(simple_actions(actions), use_container_width=True, hide_index=True)
+    st.dataframe(actions_frame(actions), use_container_width=True, hide_index=True)
 with tab_scores:
     st.dataframe(scores, use_container_width=True, hide_index=True)

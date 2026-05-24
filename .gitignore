@@ -5,4 +5,5 @@ pytest-cache-files-*/
 .venv/
 data/
 logs/
+reports/*.db
 .env

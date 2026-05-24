@@ -1,0 +1,6 @@
+round_id,event_type,severity,commander_mode,blue_action,pre_sla,post_event_sla,post_action_sla,sla_delta,recovery_delta,red_success_score,blue_defense_score,sla_preservation_score,recovery_score,false_positive_penalty,action_cost,total_utility
+1,LOG_NOISE,0.3,BALANCED,OBSERVE_ONLY,100.0,100.0,100.0,0.0,0.0,0.0,100.0,100.0,80.0,0.0,0.0,72.0
+2,LOG_NOISE,0.3,RED_EXPLORATION,OBSERVE_ONLY,100.0,100.0,100.0,0.0,0.0,0.0,100.0,100.0,80.0,0.0,0.0,72.0
+3,TRAFFIC_SPIKE,0.59,RED_EXPLORATION,OBSERVE_ONLY,100.0,100.0,100.0,0.0,0.0,35.0,66.71,100.0,80.0,0.0,0.0,51.6
+4,LOG_NOISE,0.3,RED_EXPLORATION,OBSERVE_ONLY,100.0,100.0,100.0,0.0,0.0,0.0,100.0,100.0,80.0,0.0,0.0,72.0
+5,LOG_NOISE,0.3,RED_EXPLORATION,OBSERVE_ONLY,100.0,100.0,100.0,0.0,0.0,0.0,100.0,100.0,80.0,0.0,0.0,72.0

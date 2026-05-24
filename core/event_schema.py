@@ -14,6 +14,7 @@ EventType = Literal[
     "SERVICE_DEGRADATION",
     "MISSION_COMMAND_ANOMALY",
     "LOG_NOISE",
+    "RECOVERY_HEALTH_CHECK",
 ]
 
 AttackEventType = Literal[

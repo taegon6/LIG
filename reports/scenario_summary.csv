@@ -1,0 +1,3 @@
+event_type,attempts,average_sla,average_sla_drop,average_recovery_delta,average_utility,action_accuracy,false_positive_rate,recovery_success_rate
+LOG_NOISE,4,100.0,0.0,0.0,72.0,1.0,0.0,1.0
+TRAFFIC_SPIKE,1,100.0,0.0,0.0,51.6,0.0,0.0,1.0
