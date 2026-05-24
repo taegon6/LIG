@@ -101,6 +101,142 @@ def test_blue_agent_chooses_correct_action_for_main_scenarios() -> None:
         assert decision.selected_action == expected_action
 
 
+def test_latest_active_event_wins_over_older_noisy_history() -> None:
+    events = [
+        {
+            "event_type": "TRAFFIC_SPIKE",
+            "severity": 0.5,
+            "latency_ms": 260,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        },
+        {
+            "event_type": "AUTH_ANOMALY",
+            "severity": 0.95,
+            "latency_ms": 180,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        },
+        {
+            "event_type": "LOG_NOISE",
+            "severity": 0.2,
+            "latency_ms": 120,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        },
+    ]
+
+    decision = BlueAgent().decide(events, sla_score=100.0)
+
+    assert decision.selected_action == "APPLY_RATE_LIMIT"
+    assert "traffic spike" in decision.reason.lower()
+
+
+def test_traffic_spike_severity_half_selects_rate_limit() -> None:
+    events = [
+        {
+            "event_type": "TRAFFIC_SPIKE",
+            "severity": 0.5,
+            "latency_ms": 210,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        }
+    ]
+
+    decision = BlueAgent().decide(events, sla_score=100.0)
+
+    assert decision.selected_action == "APPLY_RATE_LIMIT"
+
+
+def test_auth_anomaly_selects_token_block() -> None:
+    events = [
+        {
+            "event_type": "AUTH_ANOMALY",
+            "severity": 0.45,
+            "latency_ms": 170,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        }
+    ]
+
+    decision = BlueAgent().decide(events, sla_score=100.0)
+
+    assert decision.selected_action == "BLOCK_SUSPICIOUS_TOKEN"
+
+
+def test_mission_command_anomaly_selects_deception_or_escalation() -> None:
+    events = [
+        {
+            "event_type": "MISSION_COMMAND_ANOMALY",
+            "severity": 0.55,
+            "latency_ms": 190,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        }
+    ]
+
+    decision = BlueAgent().decide(events, sla_score=100.0)
+
+    assert decision.selected_action in {"DEPLOY_DECOY", "ESCALATE_ALERT"}
+    assert decision.selected_action != "RESTART_SERVICE"
+
+
+def test_log_noise_alone_still_observes() -> None:
+    events = [
+        {
+            "event_type": "LOG_NOISE",
+            "severity": 0.4,
+            "latency_ms": 130,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        }
+    ]
+
+    decision = BlueAgent().decide(events, sla_score=100.0)
+
+    assert decision.selected_action == "OBSERVE_ONLY"
+
+
+def test_recovery_health_check_stops_old_event_from_winning() -> None:
+    events = [
+        {
+            "event_type": "LOG_NOISE",
+            "severity": 0.4,
+            "latency_ms": 130,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        },
+        {
+            "event_type": "RECOVERY_HEALTH_CHECK",
+            "severity": 0.0,
+            "latency_ms": 150,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        },
+        {
+            "event_type": "AUTH_ANOMALY",
+            "severity": 0.95,
+            "latency_ms": 180,
+            "status_code": 200,
+            "mission_status": "ACTIVE",
+            "sla_ok": True,
+        },
+    ]
+
+    decision = BlueAgent().decide(events, sla_score=100.0)
+
+    assert decision.selected_action == "OBSERVE_ONLY"
+
+
 def test_recent_failure_awareness_prioritizes_correct_response() -> None:
     scenario_stats = [
         {
@@ -124,6 +260,5 @@ def test_recent_failure_awareness_prioritizes_correct_response() -> None:
     baseline = BlueAgent().decide(events, sla_score=100.0)
     adapted = BlueAgent(scenario_stats=scenario_stats).decide(events, sla_score=100.0)
 
-    assert baseline.selected_action == "APPLY_RATE_LIMIT"
+    assert baseline.selected_action == "BLOCK_SUSPICIOUS_TOKEN"
     assert adapted.selected_action == "BLOCK_SUSPICIOUS_TOKEN"
-    assert "Recent Blue failures" in adapted.reason

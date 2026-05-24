@@ -42,7 +42,7 @@ def ideal_actions_for_event(event_type: str) -> set[str]:
     if event_type == "SERVICE_DEGRADATION":
         return {"RESTART_SERVICE", "ROLLBACK_VERSION", "ESCALATE_ALERT"}
     if event_type == "MISSION_COMMAND_ANOMALY":
-        return {"DEPLOY_DECOY", "ESCALATE_ALERT", "OBSERVE_ONLY"}
+        return {"DEPLOY_DECOY", "ESCALATE_ALERT"}
     return {"ESCALATE_ALERT"}
 
 

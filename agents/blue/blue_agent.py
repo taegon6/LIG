@@ -6,7 +6,7 @@ from agents.blue.containment_policy import ContainmentPolicy
 from agents.blue.deception_policy import DeceptionPolicy
 from agents.blue.recovery_policy import RecoveryPolicy
 from agents.blue.sla_governor import SLAGovernor
-from agents.blue.triage_policy import TriagePolicy, dominant_event_type
+from agents.blue.triage_policy import TriagePolicy, latest_active_event, latest_active_event_type
 from core.event_schema import ActionType, BlueDecision
 from core.sla import calculate_sla
 
@@ -29,13 +29,21 @@ class BlueAgent:
         component_scores = self.calculate_component_scores(events)
         risk_score = self.triage.risk_score(component_scores)
         risk_level = self.triage.risk_level(risk_score)
-        dominant = dominant_event_type(events)
-        current_event_type = str(events[0].get("event_type", "NORMAL")) if events else "NORMAL"
-        if current_event_type in {"NORMAL", "LOG_NOISE", "RECOVERY_HEALTH_CHECK"} and sla_score >= 95:
+        active_event = latest_active_event(events)
+        active_event_type = latest_active_event_type(events)
+        active_severity = float(active_event.get("severity", 0.0)) if active_event else 0.0
+        mission_status = str(active_event.get("mission_status", "ACTIVE")) if active_event else "ACTIVE"
+        if active_event_type in {"NORMAL", "LOG_NOISE", "RECOVERY_HEALTH_CHECK"} and sla_score >= 95:
             action = "OBSERVE_ONLY"
             reason = "Latest event is benign or log noise with stable SLA; observing avoids a false positive."
         else:
-            action, reason = self.choose_action(dominant, risk_score, sla_score)
+            action, reason = self.choose_action(
+                active_event_type,
+                risk_score,
+                sla_score,
+                active_severity,
+                mission_status,
+            )
         confidence = round(min(0.95, 0.55 + abs(risk_score - 0.5) * 0.55 + len(events) * 0.01), 2)
 
         return BlueDecision(
@@ -51,7 +59,37 @@ class BlueAgent:
     def calculate_component_scores(self, events: list[dict[str, Any]]) -> dict[str, float]:
         return self.triage.calculate_component_scores(events)
 
-    def choose_action(self, event_type: str, risk_score: float, sla_score: float) -> tuple[ActionType, str]:
+    def choose_action(
+        self,
+        event_type: str,
+        risk_score: float,
+        sla_score: float,
+        severity: float = 0.0,
+        mission_status: str = "ACTIVE",
+    ) -> tuple[ActionType, str]:
+        mission_degraded = mission_status != "ACTIVE"
+
+        if event_type == "TRAFFIC_SPIKE":
+            if self.sla_governor.should_recover_first(sla_score) and mission_degraded:
+                return self.recovery.action_for(event_type, sla_score)
+            if severity >= 0.35 or risk_score < 0.3:
+                return (
+                    "APPLY_RATE_LIMIT",
+                    "Latest active event is a traffic spike; applying a low-impact simulated rate limit.",
+                )
+
+        if event_type == "AUTH_ANOMALY":
+            if self.sla_governor.should_recover_first(sla_score) and mission_degraded:
+                return self.recovery.action_for(event_type, sla_score)
+            action, reason = self.containment.action_for(event_type)
+            if action is not None:
+                return action, reason
+
+        if event_type == "MISSION_COMMAND_ANOMALY":
+            if self.sla_governor.should_recover_first(sla_score) or mission_degraded:
+                return self.recovery.action_for(event_type, sla_score)
+            return self.deception.action_for(event_type, max(risk_score, 0.6))
+
         if self.sla_governor.failed_recently(event_type, self.scenario_stats):
             preferred = self.sla_governor.preferred_failure_actions(event_type)
             if event_type == "SERVICE_DEGRADATION":

@@ -16,6 +16,35 @@ COMPONENT_ZERO = {
 }
 
 
+def latest_active_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Return the newest actionable event, treating benign noise as fallback only.
+
+    Callers pass recent logs newest-first. If there is no active signal, the
+    newest LOG_NOISE entry is returned so Blue can still explicitly observe it.
+    """
+
+    latest_noise: dict[str, Any] | None = None
+    for event in events:
+        event_type = str(event.get("event_type", "NORMAL"))
+        if event_type == "RECOVERY_HEALTH_CHECK":
+            break
+        if event_type == "NORMAL":
+            continue
+        if event_type == "LOG_NOISE":
+            if latest_noise is None:
+                latest_noise = event
+            continue
+        return event
+    return latest_noise
+
+
+def latest_active_event_type(events: list[dict[str, Any]]) -> str:
+    event = latest_active_event(events)
+    if event is None:
+        return "NORMAL"
+    return str(event.get("event_type", "NORMAL"))
+
+
 def dominant_event_type(events: list[dict[str, Any]]) -> str:
     relevant = [
         str(event.get("event_type", "NORMAL"))
