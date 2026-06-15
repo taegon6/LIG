@@ -86,6 +86,7 @@ Red strategy evidence is exposed through:
 
 - `GET /stats/red`
 - `reports/round_metrics.csv`
+- `reports/red_objective_summary.csv`
 - `reports/hard_mode_round_metrics.csv`
 - `docs/attack_scenario_design.md`
 - `docs/red_strategy_analysis.md`
@@ -119,8 +120,8 @@ systems.
 
 Latest reproducible local evidence:
 
-- `pytest`: 69 tests passed.
-- Adaptive self-play: 100 rounds, average SLA 100.0, scenario entropy 99.98, coverage score 100.0.
+- `pytest`: 70 tests passed.
+- Adaptive self-play: 100 rounds, average SLA 100.0, five Red objectives x 20 attempts, coverage score 100.0.
 - Balanced evaluation: 6 safe scenarios x 20 attempts.
 - Hard mode: average SLA 29.0, recovery failure rate 0.71, Red success rate 0.72.
 - Goal runner: score 100.0, hard gates passed.
@@ -170,6 +171,7 @@ Generated evidence:
 
 - `reports/round_metrics.csv`
 - `reports/scenario_summary.csv`
+- `reports/red_objective_summary.csv`
 - `reports/balanced_round_metrics.csv`
 - `reports/balanced_scenario_summary.csv`
 - `reports/hard_mode_round_metrics.csv`

@@ -101,6 +101,11 @@ positive pressure, recovery failure, and scenario coverage.
 - `avg_total_utility_impact`: how much the round reduced total defender utility.
 - `coverage_score`: whether all safe Red event types are exercised.
 
+`reports/red_objective_summary.csv` is the compact objective-level evidence
+artifact. It summarizes attempts, Red success, SLA drop, Blue mismatch,
+recovery delta, utility impact, and the most effective safe event type for each
+Red objective observed during adaptive self-play.
+
 ## DAH-Style Attack Score Mapping
 
 The DAH preliminary rubric values attack scenario design most heavily. Aegis-Swarm
@@ -109,7 +114,7 @@ maps that requirement to objective-driven Red behavior:
 - Scenario diversity: `COVERAGE` objective and balanced evaluation.
 - Mission impact: `SLA_DROP` and `RECOVERY_PRESSURE`.
 - Defender confusion: `BLUE_MISMATCH` and `CONFUSION`.
-- Evidence: `reports/round_metrics.csv`, `reports/hard_mode_round_metrics.csv`, and `/stats/red`.
+- Evidence: `reports/round_metrics.csv`, `reports/red_objective_summary.csv`, `reports/hard_mode_round_metrics.csv`, and `/stats/red`.
 - Safety: public Red logic is simulation-only and never interacts with real targets.
 
 ## Safety Boundary

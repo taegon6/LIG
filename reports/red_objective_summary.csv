@@ -1,0 +1,6 @@
+red_objective,attempts,average_red_success_score,average_sla_drop,blue_mismatch_rate,average_recovery_delta,average_total_utility_impact,most_effective_event_type
+BLUE_MISMATCH,20,0.0,0.0,0.0,0.0,28.7,AUTH_ANOMALY
+CONFUSION,20,0.0,0.0,0.0,0.0,28.7,AUTH_ANOMALY
+COVERAGE,20,0.0,0.0,0.0,0.0,28.57,LOG_NOISE
+RECOVERY_PRESSURE,20,13.5,28.4,0.0,30.0,31.88,SERVICE_DEGRADATION
+SLA_DROP,20,18.0,37.24,0.0,40.0,32.7,SERVICE_DEGRADATION

@@ -31,6 +31,22 @@ def test_red_agent_plan_contains_strategy_metadata() -> None:
     assert plan.event.event_type == plan.event_type
 
 
+def test_red_exploration_rotates_objectives_after_event_coverage() -> None:
+    scenario_stats = [{"event_type": event_type, "attempts": 1} for event_type in SAFE_SCENARIOS]
+    red_strategy_stats = [{"objective": "COVERAGE", "attempts": 6}]
+
+    plan = RedAgent(epsilon=0.0).generate_plan(
+        "RED_EXPLORATION",
+        recent_scores=[],
+        current_sla=100.0,
+        scenario_stats=scenario_stats,
+        red_strategy_stats=red_strategy_stats,
+    )
+
+    assert plan.red_objective == "SLA_DROP"
+    assert plan.event_type in RED_OBJECTIVES["SLA_DROP"].safe_events
+
+
 def test_selfplay_round_includes_red_strategy_fields() -> None:
     client = TestClient(app)
 

@@ -20,6 +20,7 @@ logic are robust.
 - `false_positive_count`: confusion signal for benign or noisy events.
 - `coverage_score`: whether all safe event types have been exercised.
 - `red_strategy_stats`: objective-level memory for Red success, SLA pressure, mismatch rate, recovery, and utility impact.
+- `reports/red_objective_summary.csv`: objective-level evidence table generated from adaptive self-play.
 - Hard-mode failure cases: repeated pressure can expose recovery limits even when Blue action selection is correct.
 
 ## What Red Does
@@ -46,8 +47,9 @@ effect the simulator expected.
 ## Most Effective Objectives
 
 The current evidence is generated locally. In normal self-play, objective-level
-memory is available from `GET /stats/red` and `reports/round_metrics.csv`. In
-hard mode, repeated `SERVICE_DEGRADATION`, `TELEMETRY_INCONSISTENCY`, and
+memory is available from `GET /stats/red`, `reports/round_metrics.csv`, and
+`reports/red_objective_summary.csv`. In hard mode, repeated
+`SERVICE_DEGRADATION`, `TELEMETRY_INCONSISTENCY`, and
 `TRAFFIC_SPIKE` pressure tends to produce the strongest Red-side evidence because
 it can reduce rolling SLA or cause partial recovery. This is documented in
 `docs/failure_analysis.md`.
@@ -68,6 +70,5 @@ action logic is published.
 ## Next Improvements
 
 - Add more sequence-level objective selection for hard mode.
-- Track objective-level success rates separately from event-type stats.
 - Tune Commander mode transitions based on objective-specific failures.
 - Connect an official runtime through a private adapter when allowed.

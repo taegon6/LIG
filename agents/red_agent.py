@@ -130,15 +130,19 @@ class RedAgent:
         scenario_stats: list[dict[str, Any]] | None = None,
         red_strategy_stats: list[dict[str, Any]] | None = None,
     ) -> RedObjectiveName:
+        attempted = {str(row.get("event_type")) for row in scenario_stats or [] if int(row.get("attempts", 0)) > 0}
+        coverage_incomplete = len(attempted) < len(SAFE_SCENARIOS)
+
         if commander_mode == "RED_EXPLORATION":
-            return "COVERAGE"
+            if coverage_incomplete:
+                return "COVERAGE"
+            return self._least_attempted_objective(red_strategy_stats)
         if commander_mode == "DEFENSE_HARDENING":
             return "RECOVERY_PRESSURE"
         if current_sla < 90 or commander_mode == "RECOVERY_FIRST":
             return "RECOVERY_PRESSURE"
 
-        attempted = {str(row.get("event_type")) for row in scenario_stats or [] if int(row.get("attempts", 0)) > 0}
-        if len(attempted) < len(SAFE_SCENARIOS):
+        if coverage_incomplete:
             return "COVERAGE"
 
         score_window = recent_scores or []
@@ -168,6 +172,24 @@ class RedAgent:
                 return str(ranked[0]["objective"])  # type: ignore[return-value]
 
         return "SLA_DROP"
+
+    def _least_attempted_objective(
+        self,
+        red_strategy_stats: list[dict[str, Any]] | None,
+    ) -> RedObjectiveName:
+        attempts = {name: 0 for name in RED_OBJECTIVES}
+        for row in red_strategy_stats or []:
+            objective = str(row.get("objective"))
+            if objective in attempts:
+                attempts[objective] = int(row.get("attempts", 0))
+        ordered: list[RedObjectiveName] = [
+            "SLA_DROP",
+            "BLUE_MISMATCH",
+            "CONFUSION",
+            "RECOVERY_PRESSURE",
+            "COVERAGE",
+        ]
+        return min(ordered, key=lambda objective: (attempts[objective], ordered.index(objective)))
 
     def choose_scenario_for_objective(
         self,

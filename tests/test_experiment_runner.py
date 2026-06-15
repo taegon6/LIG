@@ -4,7 +4,7 @@ import csv
 import shutil
 from pathlib import Path
 
-from scripts.run_experiments import ROUND_COLUMNS, SCENARIO_COLUMNS, run_experiments
+from scripts.run_experiments import RED_OBJECTIVE_COLUMNS, ROUND_COLUMNS, SCENARIO_COLUMNS, run_experiments
 
 
 def workspace_tmp(name: str) -> Path:
@@ -39,6 +39,7 @@ def test_experiment_runner_creates_csv_files() -> None:
 
     assert Path(summary["round_metrics"]).exists()
     assert Path(summary["scenario_summary"]).exists()
+    assert Path(summary["red_objective_summary"]).exists()
 
 
 def test_experiment_csv_files_contain_required_columns() -> None:
@@ -49,6 +50,7 @@ def test_experiment_csv_files_contain_required_columns() -> None:
 
     assert read_header(reports_dir / "round_metrics.csv") == ROUND_COLUMNS
     assert read_header(reports_dir / "scenario_summary.csv") == SCENARIO_COLUMNS
+    assert read_header(reports_dir / "red_objective_summary.csv") == RED_OBJECTIVE_COLUMNS
 
 
 def test_small_experiment_completes_without_external_access() -> None:

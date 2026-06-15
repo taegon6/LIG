@@ -17,6 +17,11 @@ Round-level CSVs now include rolling SLA evidence columns:
 - `rolling_sla_50`: average `instant_sla` over the current and previous 49 rounds.
 - `rolling_recovery_delta`: average recovery delta over the current and previous 9 rounds.
 
+The adaptive run also writes `reports/red_objective_summary.csv`. This table is
+separate from per-scenario evidence: it groups rounds by Red objective so judges
+can inspect whether `SLA_DROP`, `BLUE_MISMATCH`, `CONFUSION`,
+`RECOVERY_PRESSURE`, and `COVERAGE` create different measurable pressure.
+
 ## Summary Metrics
 
 | Metric | Value |
@@ -24,12 +29,12 @@ Round-level CSVs now include rolling SLA evidence columns:
 | Rounds | 100 |
 | Seed | 42 |
 | Average SLA | 100.00 |
-| Average SLA Drop | 2.98 |
-| Average Recovery Delta | 3.00 |
-| Average Utility | 71.05 |
+| Average SLA Drop | 13.13 |
+| Average Recovery Delta | 14.00 |
+| Average Utility | 69.89 |
 | False Positive Rate | 0.000 |
 | Recovery Success Rate | 1.000 |
-| Scenario Entropy | 99.98 |
+| Scenario Entropy | 71.90 |
 | Coverage Score | 100.00 |
 
 ## Early-vs-Late Comparison
@@ -37,18 +42,37 @@ Round-level CSVs now include rolling SLA evidence columns:
 | Window | Average SLA | Blue Success Rate | Red Success Rate | Average Recovery Delta | False Positive Rate |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Rounds 1-20 | 100.00 | 1.000 | 0.000 | 0.00 | 0.000 |
-| Rounds 81-100 | 100.00 | 1.000 | 0.200 | 20.00 | 0.000 |
+| Rounds 81-100 | 100.00 | 1.000 | 0.900 | 40.00 | 0.000 |
 
 ## Per-Scenario Summary
 
 | Scenario | Attempts | Average SLA | Average SLA Drop | Average Recovery Delta | Average Utility | Action Accuracy | False Positive Rate | Recovery Success Rate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| AUTH_ANOMALY | 17 | 100.00 | 0.00 | 0.00 | 71.30 | 1.000 | 0.000 | 1.000 |
-| LOG_NOISE | 17 | 100.00 | 0.00 | 0.00 | 72.00 | 1.000 | 0.000 | 1.000 |
-| MISSION_COMMAND_ANOMALY | 17 | 100.00 | 0.00 | 0.00 | 71.48 | 1.000 | 0.000 | 1.000 |
-| SERVICE_DEGRADATION | 17 | 100.00 | 17.53 | 17.65 | 69.13 | 1.000 | 0.000 | 1.000 |
-| TELEMETRY_INCONSISTENCY | 16 | 100.00 | 0.00 | 0.00 | 71.00 | 1.000 | 0.000 | 1.000 |
-| TRAFFIC_SPIKE | 16 | 100.00 | 0.00 | 0.00 | 71.40 | 1.000 | 0.000 | 1.000 |
+| AUTH_ANOMALY | 41 | 100.00 | 0.00 | 0.00 | 71.30 | 1.000 | 0.000 | 1.000 |
+| LOG_NOISE | 5 | 100.00 | 0.00 | 0.00 | 72.00 | 1.000 | 0.000 | 1.000 |
+| MISSION_COMMAND_ANOMALY | 5 | 100.00 | 0.00 | 0.00 | 71.44 | 1.000 | 0.000 | 1.000 |
+| SERVICE_DEGRADATION | 41 | 100.00 | 32.02 | 34.15 | 67.78 | 1.000 | 0.000 | 1.000 |
+| TELEMETRY_INCONSISTENCY | 4 | 100.00 | 0.00 | 0.00 | 71.00 | 1.000 | 0.000 | 1.000 |
+| TRAFFIC_SPIKE | 4 | 100.00 | 0.00 | 0.00 | 71.40 | 1.000 | 0.000 | 1.000 |
+
+## Red Objective Summary
+
+`reports/red_objective_summary.csv` is the objective-level attack design
+evidence table. It records attempts, average Red success score, average SLA
+drop, Blue mismatch rate, average recovery delta, average total utility impact,
+and the most effective safe event type for each observed objective.
+
+This matters because DAH attack scenario scoring should not only see six event
+labels. It should see the strategic intent behind the event: availability
+pressure, action mismatch, confusion, recovery pressure, or coverage.
+
+| Red Objective | Attempts | Avg Red Success | Avg SLA Drop | Blue Mismatch Rate | Avg Recovery Delta | Avg Utility Impact | Most Effective Event |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `BLUE_MISMATCH` | 20 | 0.00 | 0.00 | 0.000 | 0.00 | 28.70 | `AUTH_ANOMALY` |
+| `CONFUSION` | 20 | 0.00 | 0.00 | 0.000 | 0.00 | 28.70 | `AUTH_ANOMALY` |
+| `COVERAGE` | 20 | 0.00 | 0.00 | 0.000 | 0.00 | 28.57 | `LOG_NOISE` |
+| `RECOVERY_PRESSURE` | 20 | 13.50 | 28.40 | 0.000 | 30.00 | 31.88 | `SERVICE_DEGRADATION` |
+| `SLA_DROP` | 20 | 18.00 | 37.24 | 0.000 | 40.00 | 32.70 | `SERVICE_DEGRADATION` |
 
 ## Balanced Scenario Evaluation
 
@@ -170,11 +194,11 @@ The detailed failure analysis is documented in `docs/failure_analysis.md`. Repre
 
 ## Interpretation for DAH Preliminary Report
 
-The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% while exercising all six safe simulated scenario types in a much more balanced distribution. The service degradation scenario caused the clearest SLA impact, with an average SLA drop of 17.53 points and average recovery delta of 17.65 points. This demonstrates that the post-action `RECOVERY_HEALTH_CHECK` model is measurable rather than decorative.
+The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% while exercising all six safe simulated scenario types and all five Red objectives. The service degradation scenario caused the clearest SLA impact, with an average SLA drop of 32.02 points and average recovery delta of 34.15 points. This demonstrates that the post-action `RECOVERY_HEALTH_CHECK` model is measurable rather than decorative.
 
 False positives remained 0.000 after Blue Agent was hardened to prioritize the latest unrecovered active event while treating `RECOVERY_HEALTH_CHECK` as a boundary for already-handled history. This avoids both stale-event overreaction and passive observation for fresh simulated pressure.
 
-Scenario coverage reached 100%, and scenario entropy reached 99.98 after the Red objective model began using `COVERAGE` explicitly. Action accuracy remained 1.000 for every scenario in this deterministic run, including `TRAFFIC_SPIKE` and `MISSION_COMMAND_ANOMALY`. The remaining improvement target is tuning service-degradation scoring so temporary pre-recovery disruption is separated more clearly from final mission recovery.
+Scenario coverage reached 100%, and Red objective coverage reached all five objective families with 20 attempts each in this deterministic run. Scenario entropy is lower than the earlier coverage-only run because adaptive self-play now spends more rounds on `SLA_DROP` and `RECOVERY_PRESSURE`, which repeatedly select `SERVICE_DEGRADATION` as the strongest safe availability-pressure event. Balanced evaluation remains the separate artifact for equal per-scenario attempts.
 
 Aegis-Swarm v2 remains a local simulation. Official DAH runtime integration requires a private adapter that maps competition APIs into the public adapter interface without exposing private endpoints, credentials, or competition-specific secrets.
 
@@ -182,6 +206,7 @@ Generated evidence files:
 
 - `reports/round_metrics.csv`
 - `reports/scenario_summary.csv`
+- `reports/red_objective_summary.csv`
 - `reports/balanced_round_metrics.csv`
 - `reports/balanced_scenario_summary.csv`
 - `reports/multi_seed_summary.csv`

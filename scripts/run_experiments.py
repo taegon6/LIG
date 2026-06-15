@@ -55,6 +55,17 @@ SCENARIO_COLUMNS = [
     "recovery_success_rate",
 ]
 
+RED_OBJECTIVE_COLUMNS = [
+    "red_objective",
+    "attempts",
+    "average_red_success_score",
+    "average_sla_drop",
+    "blue_mismatch_rate",
+    "average_recovery_delta",
+    "average_total_utility_impact",
+    "most_effective_event_type",
+]
+
 
 def configure_database(db_path: Path) -> None:
     if db_path is None:
@@ -137,6 +148,40 @@ def summarize_by_scenario(round_rows: list[dict[str, Any]]) -> list[dict[str, An
     return summary_rows
 
 
+def summarize_by_red_objective(round_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in round_rows:
+        objective = str(row.get("red_objective") or "UNSPECIFIED")
+        grouped[objective].append(row)
+
+    summary_rows: list[dict[str, Any]] = []
+    for objective, rows in sorted(grouped.items()):
+        attempts = len(rows)
+        event_scores: dict[str, list[float]] = defaultdict(list)
+        for row in rows:
+            event_scores[str(row["event_type"])].append(float(row["red_success_score"]))
+        most_effective_event = max(
+            event_scores,
+            key=lambda event_type: (mean(event_scores[event_type]), len(event_scores[event_type])),
+        )
+        summary_rows.append(
+            {
+                "red_objective": objective,
+                "attempts": attempts,
+                "average_red_success_score": round(mean(float(row["red_success_score"]) for row in rows), 2),
+                "average_sla_drop": round(mean(max(0.0, float(row["pre_sla"]) - float(row["post_event_sla"])) for row in rows), 2),
+                "blue_mismatch_rate": round(
+                    sum(1 for row in rows if str(row.get("blue_mismatch", "")).lower() == "true") / attempts,
+                    3,
+                ),
+                "average_recovery_delta": round(mean(float(row["recovery_delta"]) for row in rows), 2),
+                "average_total_utility_impact": round(mean(100.0 - float(row["total_utility"]) for row in rows), 2),
+                "most_effective_event_type": most_effective_event,
+            }
+        )
+    return summary_rows
+
+
 def aggregate_summary(round_rows: list[dict[str, Any]], scenario_stats: dict[str, Any]) -> dict[str, float]:
     if not round_rows:
         return {
@@ -191,9 +236,11 @@ def run_experiments(
     round_rows = add_rolling_metrics(round_rows)
     scenario_stats = client.get("/stats/scenarios").json()
     scenario_rows = summarize_by_scenario(round_rows)
+    red_objective_rows = summarize_by_red_objective(round_rows)
     reports_dir.mkdir(parents=True, exist_ok=True)
     write_csv(reports_dir / "round_metrics.csv", round_rows, ROUND_COLUMNS)
     write_csv(reports_dir / "scenario_summary.csv", scenario_rows, SCENARIO_COLUMNS)
+    write_csv(reports_dir / "red_objective_summary.csv", red_objective_rows, RED_OBJECTIVE_COLUMNS)
     summary = aggregate_summary(round_rows, scenario_stats)
     return {
         "rounds": rounds,
@@ -201,6 +248,7 @@ def run_experiments(
         "reports_dir": str(reports_dir),
         "round_metrics": str(reports_dir / "round_metrics.csv"),
         "scenario_summary": str(reports_dir / "scenario_summary.csv"),
+        "red_objective_summary": str(reports_dir / "red_objective_summary.csv"),
         **summary,
     }
 
@@ -218,6 +266,7 @@ def print_summary(summary: dict[str, Any]) -> None:
     print(f"coverage score: {summary['coverage_score']}")
     print(f"round metrics CSV: {summary['round_metrics']}")
     print(f"scenario summary CSV: {summary['scenario_summary']}")
+    print(f"red objective summary CSV: {summary['red_objective_summary']}")
 
 
 def main() -> None:

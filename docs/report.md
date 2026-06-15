@@ -226,9 +226,9 @@ The adaptive self-play experiment lets the Commander and Red Agent change scenar
 | --- | ---: |
 | Rounds | 100 |
 | Average SLA | 100.00 |
-| Average SLA Drop | 2.98 |
-| Average Recovery Delta | 3.00 |
-| Average Utility | 71.05 |
+| Average SLA Drop | 13.13 |
+| Average Recovery Delta | 14.00 |
+| Average Utility | 69.89 |
 | False Positive Rate | 0.000 |
 | Recovery Success Rate | 1.000 |
 | Coverage Score | 100.00 |
@@ -237,14 +237,24 @@ Per-scenario distribution in the adaptive run:
 
 | Scenario | Attempts | Action Accuracy | Average SLA | False Positive Rate | Recovery Success Rate |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| AUTH_ANOMALY | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
-| LOG_NOISE | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
-| MISSION_COMMAND_ANOMALY | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
-| SERVICE_DEGRADATION | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
-| TELEMETRY_INCONSISTENCY | 16 | 1.000 | 100.00 | 0.000 | 1.000 |
-| TRAFFIC_SPIKE | 16 | 1.000 | 100.00 | 0.000 | 1.000 |
+| AUTH_ANOMALY | 41 | 1.000 | 100.00 | 0.000 | 1.000 |
+| LOG_NOISE | 5 | 1.000 | 100.00 | 0.000 | 1.000 |
+| MISSION_COMMAND_ANOMALY | 5 | 1.000 | 100.00 | 0.000 | 1.000 |
+| SERVICE_DEGRADATION | 41 | 1.000 | 100.00 | 0.000 | 1.000 |
+| TELEMETRY_INCONSISTENCY | 4 | 1.000 | 100.00 | 0.000 | 1.000 |
+| TRAFFIC_SPIKE | 4 | 1.000 | 100.00 | 0.000 | 1.000 |
 
-Honest interpretation: after Red objective modeling, adaptive self-play uses `COVERAGE` to avoid the earlier over-concentration on `LOG_NOISE` and `SERVICE_DEGRADATION`. This improves attack scenario design evidence, but balanced evaluation remains necessary because adaptive policy can still shift scenario mix in other seeds.
+Objective-level distribution in the adaptive run:
+
+| Red Objective | Attempts | Avg Red Success | Avg SLA Drop | Avg Recovery Delta | Most Effective Event |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `BLUE_MISMATCH` | 20 | 0.00 | 0.00 | 0.00 | `AUTH_ANOMALY` |
+| `CONFUSION` | 20 | 0.00 | 0.00 | 0.00 | `AUTH_ANOMALY` |
+| `COVERAGE` | 20 | 0.00 | 0.00 | 0.00 | `LOG_NOISE` |
+| `RECOVERY_PRESSURE` | 20 | 13.50 | 28.40 | 30.00 | `SERVICE_DEGRADATION` |
+| `SLA_DROP` | 20 | 18.00 | 37.24 | 40.00 | `SERVICE_DEGRADATION` |
+
+Honest interpretation: after Red objective modeling, adaptive self-play now exercises all five Red objectives evenly. This improves attack scenario design evidence, but the scenario mix is intentionally no longer equal because `SLA_DROP` and `RECOVERY_PRESSURE` repeatedly select `SERVICE_DEGRADATION` as the strongest safe availability-pressure event. Balanced evaluation remains necessary because it gives equal attempts to every safe scenario.
 
 ## Ablation Study
 

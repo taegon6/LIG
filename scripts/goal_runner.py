@@ -25,6 +25,7 @@ REQUIRED_EXPERIMENT_COMMANDS = [
 REQUIRED_REPORTS = [
     "reports/round_metrics.csv",
     "reports/scenario_summary.csv",
+    "reports/red_objective_summary.csv",
     "reports/balanced_round_metrics.csv",
     "reports/balanced_scenario_summary.csv",
     "reports/hard_mode_round_metrics.csv",
@@ -271,6 +272,7 @@ def compute_scores(checks: dict[str, CheckResult]) -> dict[str, Any]:
         path_exists("docs/attack_scenario_design.md"),
         path_exists("docs/red_strategy_analysis.md"),
         path_exists("adapters/private_red_adapter.py.example"),
+        path_exists("reports/red_objective_summary.csv"),
         path_exists("reports/hard_mode_round_metrics.csv"),
         checks["hard_mode_non_perfect"].passed,
     ]
