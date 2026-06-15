@@ -1,0 +1,131 @@
+{
+  "target_score": 92.0,
+  "strict": true,
+  "total_score": 100.0,
+  "categories": {
+    "Attack Scenario Design": 30.0,
+    "Defense Strategy": 25.0,
+    "AI Agent Architecture": 25.0,
+    "Team Capability": 10.0,
+    "Document Completeness": 10.0
+  },
+  "hard_gates_passed": true,
+  "passed": true,
+  "hard_gates": [
+    "pytest",
+    "run_experiments",
+    "run_balanced_evaluation",
+    "run_hard_mode",
+    "required_reports",
+    "required_docs",
+    "red_readiness",
+    "safety_boundaries",
+    "hard_mode_non_perfect",
+    "blue_readiness",
+    "ai_architecture",
+    "docs_completeness"
+  ],
+  "checks": [
+    {
+      "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -m pytest",
+      "passed": true,
+      "details": "tests\\test_red_readiness.py ....                                         [ 72%]\ntests\\test_rolling_metrics.py ..                                         [ 75%]\ntests\\test_scenario_stats.py ....                                        [ 82%]\ntests\\test_scoring.py ......                                             [ 91%]\ntests\\test_sla.py ..                                                     [ 95%]\ntests\\test_stress_scenarios.py ...                                       [100%]\n\n============================= 62 passed in 11.42s ============================="
+    },
+    {
+      "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe scripts/run_experiments.py --rounds 100 --seed 42",
+      "passed": true,
+      "details": "average recovery delta: 8.0\naverage utility: 70.73\nfalse positive rate: 0.0\nrecovery success rate: 1.0\nscenario entropy: 64.3\ncoverage score: 100.0\nround metrics CSV: reports\\round_metrics.csv\nscenario summary CSV: reports\\scenario_summary.csv"
+    },
+    {
+      "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe scripts/run_balanced_evaluation.py --rounds-per-scenario 20 --seed 42",
+      "passed": true,
+      "details": "seed: 42\ntotal rounds: 120\naverage SLA: 100.0\naverage utility: 69.9\nfalse positive rate: 0.0\nrecovery success rate: 1.0\nbalanced round metrics CSV: reports\\balanced_round_metrics.csv\nbalanced scenario summary CSV: reports\\balanced_scenario_summary.csv"
+    },
+    {
+      "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe scripts/run_hard_mode.py --rounds 100 --seed 42",
+      "passed": true,
+      "details": "average recovery delta: 1.0\nrecovery failure rate: 0.71\nblue success rate: 1.0\nred success rate: 0.72\nfalse positive rate: 0.0\naverage utility: 40.23\nhard mode round metrics CSV: reports\\hard_mode_round_metrics.csv\nhard mode summary CSV: reports\\hard_mode_summary.csv"
+    },
+    {
+      "name": "required_reports",
+      "passed": true,
+      "details": "all 6 present"
+    },
+    {
+      "name": "required_docs",
+      "passed": true,
+      "details": "all 12 present"
+    },
+    {
+      "name": "hard_mode_non_perfect",
+      "passed": true,
+      "details": "rows=100, non_perfect=True"
+    },
+    {
+      "name": "red_readiness",
+      "passed": true,
+      "details": "{\"plan\": {\"red_objective\": \"BLUE_MISMATCH\", \"event_type\": \"AUTH_ANOMALY\", \"intensity\": 0.45, \"strategy_reason\": \"Use event types that require distinct containment, decoy, or isolation actions.\", \"expected_effect\": \"Check whether Blue maps the latest safe anomaly to the correct response.\"}, \"objective_names\": [\"BLUE_MISMATCH\", \"CONFUSION\", \"COVERAGE\", \"RECOVERY_PRESSURE\", \"SLA_DROP\"], \"objective_events\": [\"AUTH_ANOMALY\", \"LOG_NOISE\", \"MISSION_COMMAND_ANOMALY\", \"SERVICE_DEGRADATION\", \"TELEMETRY_INCONSISTENCY\", \"TRAFFIC_SPIKE\"], \"stats_status\": 200, \"stats_keys\": [\"average_recent_red_success_score\", \"coverage_score\", \"external_access\", \"local_only\", \"red_objectives\", \"safe_event_types\", \"scenario_entropy\", \"scenario_stats\", \"total_attempts\"]}"
+    },
+    {
+      "name": "blue_readiness",
+      "passed": true,
+      "details": "blue evidence present"
+    },
+    {
+      "name": "ai_architecture",
+      "passed": true,
+      "details": "architecture evidence present"
+    },
+    {
+      "name": "docs_completeness",
+      "passed": true,
+      "details": "docs complete"
+    },
+    {
+      "name": "safety_boundaries",
+      "passed": true,
+      "details": "{\"private_adapter_forbidden_hits\": [], \"source_hits\": [], \"default_adapter_local\": true}"
+    }
+  ],
+  "red_evidence": {
+    "plan": {
+      "red_objective": "BLUE_MISMATCH",
+      "event_type": "AUTH_ANOMALY",
+      "intensity": 0.45,
+      "strategy_reason": "Use event types that require distinct containment, decoy, or isolation actions.",
+      "expected_effect": "Check whether Blue maps the latest safe anomaly to the correct response."
+    },
+    "objective_names": [
+      "BLUE_MISMATCH",
+      "CONFUSION",
+      "COVERAGE",
+      "RECOVERY_PRESSURE",
+      "SLA_DROP"
+    ],
+    "objective_events": [
+      "AUTH_ANOMALY",
+      "LOG_NOISE",
+      "MISSION_COMMAND_ANOMALY",
+      "SERVICE_DEGRADATION",
+      "TELEMETRY_INCONSISTENCY",
+      "TRAFFIC_SPIKE"
+    ],
+    "stats_status": 200,
+    "stats_keys": [
+      "average_recent_red_success_score",
+      "coverage_score",
+      "external_access",
+      "local_only",
+      "red_objectives",
+      "safe_event_types",
+      "scenario_entropy",
+      "scenario_stats",
+      "total_attempts"
+    ]
+  },
+  "safety_evidence": {
+    "private_adapter_forbidden_hits": [],
+    "source_hits": [],
+    "default_adapter_local": true
+  }
+}

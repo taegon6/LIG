@@ -1,11 +1,32 @@
 from __future__ import annotations
 
 import random
+from dataclasses import dataclass
 from typing import Any
 
+from agents.red_objectives import RED_OBJECTIVES, RedObjectiveName, objective_for_event
 from core.event_schema import AttackEventType, CommanderMode, SimulatedEvent
 from simulator.event_generator import choose_scenario_for_mode, generate_event
 from simulator.scenarios import SAFE_SCENARIOS
+
+
+@dataclass(frozen=True)
+class RedStrategyPlan:
+    red_objective: RedObjectiveName
+    event_type: AttackEventType
+    intensity: float
+    strategy_reason: str
+    expected_effect: str
+    event: SimulatedEvent
+
+    def metadata(self) -> dict[str, Any]:
+        return {
+            "red_objective": self.red_objective,
+            "event_type": self.event_type,
+            "intensity": self.intensity,
+            "strategy_reason": self.strategy_reason,
+            "expected_effect": self.expected_effect,
+        }
 
 
 class RedAgent:
@@ -22,6 +43,15 @@ class RedAgent:
         current_sla: float = 100.0,
         scenario_stats: list[dict[str, Any]] | None = None,
     ) -> SimulatedEvent:
+        return self.generate_plan(commander_mode, recent_scores, current_sla, scenario_stats).event
+
+    def generate_plan(
+        self,
+        commander_mode: CommanderMode,
+        recent_scores: list[dict[str, Any]] | None = None,
+        current_sla: float = 100.0,
+        scenario_stats: list[dict[str, Any]] | None = None,
+    ) -> RedStrategyPlan:
         scenario, intensity = self.choose_scenario(commander_mode, current_sla, scenario_stats)
         if current_sla < 90 or commander_mode == "RECOVERY_FIRST":
             intensity = min(intensity, 0.35)
@@ -29,7 +59,17 @@ class RedAgent:
             latest_utility = float(recent_scores[0].get("total_utility", 70.0))
             if latest_utility > 85 and commander_mode != "RECOVERY_FIRST":
                 intensity = min(0.95, intensity + 0.1)
-        return generate_event(scenario, intensity)
+        event = generate_event(scenario, intensity)
+        objective_name = self._objective_for_choice(scenario, commander_mode, current_sla, scenario_stats)
+        objective = RED_OBJECTIVES[objective_name]
+        return RedStrategyPlan(
+            red_objective=objective.name,
+            event_type=scenario,
+            intensity=round(float(event.severity), 2),
+            strategy_reason=objective.strategy_reason,
+            expected_effect=objective.expected_effect,
+            event=event,
+        )
 
     def choose_scenario(
         self,
@@ -56,6 +96,25 @@ class RedAgent:
                 return scenario, self._intensity_for_mode(commander_mode)
 
         return choose_scenario_for_mode(commander_mode)
+
+    def _objective_for_choice(
+        self,
+        scenario: AttackEventType,
+        commander_mode: CommanderMode,
+        current_sla: float,
+        scenario_stats: list[dict[str, Any]] | None,
+    ) -> RedObjectiveName:
+        if commander_mode == "RED_EXPLORATION":
+            return "COVERAGE"
+        if commander_mode == "DEFENSE_HARDENING":
+            return "RECOVERY_PRESSURE"
+        if current_sla < 90 or commander_mode == "RECOVERY_FIRST":
+            return "CONFUSION" if scenario == "LOG_NOISE" else "RECOVERY_PRESSURE"
+        if scenario_stats:
+            attempted = {str(row.get("event_type")) for row in scenario_stats if int(row.get("attempts", 0)) > 0}
+            if len(attempted) < len(SAFE_SCENARIOS):
+                return "COVERAGE"
+        return objective_for_event(scenario)
 
     def _red_success_rank(self, row: dict[str, Any]) -> tuple[float, float, int]:
         attempts = max(1, int(row.get("attempts", 0)))

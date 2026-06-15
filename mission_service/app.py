@@ -8,6 +8,7 @@ from adapters import get_adapter
 from agents.blue_agent import BlueAgent
 from agents.commander_agent import CommanderAgent
 from agents.red_agent import RedAgent
+from agents.red_objectives import RED_OBJECTIVES
 from core.action_registry import apply_action_to_state, build_action_record
 from core.event_schema import BlueDecision, SimulateEventRequest, SimulatedEvent, VehicleCommandRequest, now_iso
 from core.knowledge_mapping import round_knowledge_mapping
@@ -227,6 +228,33 @@ def stats_scenarios() -> dict[str, Any]:
     return db.scenario_stats_summary()
 
 
+@app.get("/stats/red")
+def stats_red() -> dict[str, Any]:
+    scenario_summary = db.scenario_stats_summary()
+    latest_scores = db.recent_scores(20)
+    red_scores = [float(score.get("red_success_score", score.get("attack_score", 0.0))) for score in latest_scores]
+    average_red_success = round(sum(red_scores) / len(red_scores), 2) if red_scores else 0.0
+    objective_catalog = {
+        name: {
+            "safe_events": objective.safe_events,
+            "strategy_reason": objective.strategy_reason,
+            "expected_effect": objective.expected_effect,
+        }
+        for name, objective in RED_OBJECTIVES.items()
+    }
+    return {
+        "local_only": True,
+        "external_access": False,
+        "red_objectives": objective_catalog,
+        "safe_event_types": sorted({event for objective in RED_OBJECTIVES.values() for event in objective.safe_events}),
+        "average_recent_red_success_score": average_red_success,
+        "scenario_stats": scenario_summary["scenario_stats"],
+        "coverage_score": scenario_summary["coverage_score"],
+        "scenario_entropy": scenario_summary["scenario_entropy"],
+        "total_attempts": scenario_summary["total_attempts"],
+    }
+
+
 @app.post("/simulate/event")
 def simulate_event(request: SimulateEventRequest) -> dict[str, Any]:
     event = generate_event(request.scenario, request.intensity)
@@ -256,7 +284,8 @@ def selfplay_round() -> dict[str, Any]:
     COMMANDER_MODE = commander.decide_mode(pre_sla, recent_scores, recent_actions)
 
     scenario_stats_before = db.scenario_stats()
-    red_event = RedAgent().generate(COMMANDER_MODE, recent_scores, pre_sla, scenario_stats_before)
+    red_plan = RedAgent().generate_plan(COMMANDER_MODE, recent_scores, pre_sla, scenario_stats_before)
+    red_event = red_plan.event
     update_mission_state_from_event(red_event.model_dump())
     saved_event = db.insert_event(red_event.model_dump())
 
@@ -293,7 +322,7 @@ def selfplay_round() -> dict[str, Any]:
     dah_scores = build_dah_scores(saved_score)
     strategy_notes = {
         "commander": commander_strategy_note(COMMANDER_MODE, pre_sla),
-        "red": red_strategy_note(COMMANDER_MODE, pre_sla, saved_event["event_type"]),
+        "red": red_plan.strategy_reason,
         "blue": blue_strategy_note(blue_decision, post_event_sla),
         "adapter": adapter_action_result["description"],
     }
@@ -307,6 +336,11 @@ def selfplay_round() -> dict[str, Any]:
         "post_action_sla": post_action_sla,
         "sla_delta": sla_delta,
         "recovery_delta": recovery_delta,
+        "red_objective": red_plan.red_objective,
+        "red_strategy_reason": red_plan.strategy_reason,
+        "expected_effect": red_plan.expected_effect,
+        "red_success_score": saved_score["red_success_score"],
+        "red_strategy": red_plan.metadata(),
         "red_event": saved_event,
         "recovery_event": saved_recovery_event,
         "blue_decision": blue_decision.model_dump(),
