@@ -29,7 +29,7 @@
     {
       "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -m pytest",
       "passed": true,
-      "details": "tests\\test_red_readiness.py ....                                         [ 75%]\ntests\\test_rolling_metrics.py ..                                         [ 78%]\ntests\\test_scenario_stats.py ....                                        [ 84%]\ntests\\test_scoring.py ......                                             [ 92%]\ntests\\test_sla.py ..                                                     [ 95%]\ntests\\test_stress_scenarios.py ...                                       [100%]\n\n============================= 69 passed in 14.59s ============================="
+      "details": "tests\\test_red_readiness.py ....                                         [ 75%]\ntests\\test_rolling_metrics.py ..                                         [ 78%]\ntests\\test_scenario_stats.py ....                                        [ 84%]\ntests\\test_scoring.py ......                                             [ 92%]\ntests\\test_sla.py ..                                                     [ 95%]\ntests\\test_stress_scenarios.py ...                                       [100%]\n\n============================= 69 passed in 17.71s ============================="
     },
     {
       "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe scripts/run_experiments.py --rounds 100 --seed 42",
@@ -44,7 +44,7 @@
     {
       "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe scripts/run_hard_mode.py --rounds 100 --seed 42",
       "passed": true,
-      "details": "average recovery delta: 1.0\nrecovery failure rate: 0.71\nblue success rate: 1.0\nred success rate: 0.72\nfalse positive rate: 0.0\naverage utility: 40.23\nhard mode round metrics CSV: reports\\hard_mode_round_metrics.csv\nhard mode summary CSV: reports\\hard_mode_summary.csv"
+      "details": "mission recovery success rate: 0.29\naction match rate: 1.0\nblue defense score success rate: 1.0\nred success rate: 0.72\nfalse positive rate: 0.0\naverage utility: 40.23\nhard mode round metrics CSV: reports\\hard_mode_round_metrics.csv\nhard mode summary CSV: reports\\hard_mode_summary.csv"
     },
     {
       "name": "required_reports",
@@ -64,7 +64,7 @@
     {
       "name": "red_readiness",
       "passed": true,
-      "details": "{\"plan\": {\"red_objective\": \"COVERAGE\", \"event_type\": \"TELEMETRY_INCONSISTENCY\", \"intensity\": 0.5, \"strategy_reason\": \"Prefer under-sampled safe scenarios to avoid overfitting the self-play loop.\", \"expected_effect\": \"Improve scenario coverage across the complete safe event set.\"}, \"objective_names\": [\"BLUE_MISMATCH\", \"CONFUSION\", \"COVERAGE\", \"RECOVERY_PRESSURE\", \"SLA_DROP\"], \"objective_events\": [\"AUTH_ANOMALY\", \"LOG_NOISE\", \"MISSION_COMMAND_ANOMALY\", \"SERVICE_DEGRADATION\", \"TELEMETRY_INCONSISTENCY\", \"TRAFFIC_SPIKE\"], \"stats_status\": 200, \"stats_keys\": [\"average_recent_red_success_score\", \"coverage_score\", \"external_access\", \"local_only\", \"most_effective_objective\", \"red_objectives\", \"red_strategy_stats\", \"safe_event_types\", \"scenario_entropy\", \"scenario_stats\", \"total_attempts\", \"total_objective_attempts\"]}"
+      "details": "{\"plan\": {\"red_objective\": \"COVERAGE\", \"event_type\": \"TRAFFIC_SPIKE\", \"intensity\": 0.64, \"strategy_reason\": \"Prefer under-sampled safe scenarios to avoid overfitting the self-play loop.\", \"expected_effect\": \"Improve scenario coverage across the complete safe event set.\"}, \"objective_names\": [\"BLUE_MISMATCH\", \"CONFUSION\", \"COVERAGE\", \"RECOVERY_PRESSURE\", \"SLA_DROP\"], \"objective_events\": [\"AUTH_ANOMALY\", \"LOG_NOISE\", \"MISSION_COMMAND_ANOMALY\", \"SERVICE_DEGRADATION\", \"TELEMETRY_INCONSISTENCY\", \"TRAFFIC_SPIKE\"], \"stats_status\": 200, \"stats_keys\": [\"average_recent_red_success_score\", \"coverage_score\", \"external_access\", \"local_only\", \"most_effective_objective\", \"red_objectives\", \"red_strategy_stats\", \"safe_event_types\", \"scenario_entropy\", \"scenario_stats\", \"total_attempts\", \"total_objective_attempts\"]}"
     },
     {
       "name": "blue_readiness",
@@ -90,8 +90,8 @@
   "red_evidence": {
     "plan": {
       "red_objective": "COVERAGE",
-      "event_type": "TELEMETRY_INCONSISTENCY",
-      "intensity": 0.5,
+      "event_type": "TRAFFIC_SPIKE",
+      "intensity": 0.64,
       "strategy_reason": "Prefer under-sampled safe scenarios to avoid overfitting the self-play loop.",
       "expected_effect": "Improve scenario coverage across the complete safe event set."
     },

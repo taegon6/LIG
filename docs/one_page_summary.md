@@ -13,6 +13,15 @@ selects an attack objective and generates only synthetic local anomaly events,
 Blue selects SLA-aware defensive actions, and Commander balances recovery,
 hardening, and exploration.
 
+## Key Claim
+
+Aegis-Swarm v2 provides repeatable, judge-inspectable evidence that a local
+Red/Blue/Commander agent loop can stress-test mission availability safely.
+Normal and balanced runs demonstrate stable policy behavior; hard mode
+deliberately exposes recovery failures under sustained simulated pressure. The
+system is preliminary-ready as a safe simulation package, while official runtime
+validation remains private-adapter-dependent.
+
 ## 5-Line Architecture Summary
 
 1. FastAPI mission service exposes health, mission state, telemetry, logs, and self-play APIs.

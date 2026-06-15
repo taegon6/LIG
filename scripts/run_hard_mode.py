@@ -107,6 +107,8 @@ HARD_SUMMARY_COLUMNS = [
     "min_rolling_sla_50",
     "average_recovery_delta",
     "recovery_failure_rate",
+    "mission_recovery_success_rate",
+    "action_match_rate",
     "blue_success_rate",
     "red_success_rate",
     "false_positive_rate",
@@ -337,6 +339,8 @@ def run_hard_mode(
         "min_rolling_sla_50": round(min(float(row["rolling_sla_50"]) for row in rows), 2),
         "average_recovery_delta": round(mean(float(row["recovery_delta"]) for row in rows), 2),
         "recovery_failure_rate": round(sum(1 for row in rows if row["recovery_failed"]) / rounds, 3),
+        "mission_recovery_success_rate": round(sum(1 for row in rows if not row["recovery_failed"]) / rounds, 3),
+        "action_match_rate": round(sum(1 for row in rows if row["action_match"]) / rounds, 3),
         "blue_success_rate": round(sum(1 for row in rows if float(row["blue_defense_score"]) >= 70.0) / rounds, 3),
         "red_success_rate": round(sum(1 for row in rows if float(row["red_success_score"]) > 0.0) / rounds, 3),
         "false_positive_rate": round(sum(1 for row in rows if row["false_positive"]) / rounds, 3),
@@ -361,7 +365,9 @@ def print_summary(summary: dict[str, Any]) -> None:
     print(f"min rolling SLA 50: {summary['min_rolling_sla_50']}")
     print(f"average recovery delta: {summary['average_recovery_delta']}")
     print(f"recovery failure rate: {summary['recovery_failure_rate']}")
-    print(f"blue success rate: {summary['blue_success_rate']}")
+    print(f"mission recovery success rate: {summary['mission_recovery_success_rate']}")
+    print(f"action match rate: {summary['action_match_rate']}")
+    print(f"blue defense score success rate: {summary['blue_success_rate']}")
     print(f"red success rate: {summary['red_success_rate']}")
     print(f"false positive rate: {summary['false_positive_rate']}")
     print(f"average utility: {summary['average_utility']}")

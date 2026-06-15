@@ -27,15 +27,17 @@ python scripts/run_hard_mode.py --rounds 100 --seed 42
 | Minimum rolling SLA 50 | 14.29 |
 | Average recovery delta | 1.00 |
 | Recovery failure rate | 0.71 |
-| Blue success rate | 1.00 |
+| Mission recovery success rate | 0.29 |
+| Action match rate | 1.00 |
 | Red success rate | 0.72 |
 | False positive rate | 0.00 |
 | Average utility | 40.23 |
 
-The hard-mode result is intentionally not perfect. Blue usually selected the
-expected defensive action, but repeated local pressure caused partial or delayed
-recovery. This means the main limitation was not action selection alone; it was
-the simulated recovery model under sustained SLA pressure.
+The hard-mode result is intentionally not perfect. `Action match rate` means
+Blue selected the expected action class. `Mission recovery success rate` means
+the post-action local health check recovered SLA. Hard mode shows that the
+correct action class can still fail to recover the mission under sustained
+simulated pressure.
 
 ## Why failure analysis matters
 

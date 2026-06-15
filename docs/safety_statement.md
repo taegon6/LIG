@@ -4,6 +4,21 @@ Aegis-Swarm v2 is a local-only cyber-defense simulation MVP. The public
 repository is designed for DAH preliminary review and does not contain real
 offensive cyber capability.
 
+## Current Safety Audit Evidence
+
+The DAH readiness self-check currently passes:
+
+```bash
+python scripts/goal_runner.py --target-score 92 --strict
+```
+
+The generated `reports/goal_score.json` records:
+
+- `hard_gates_passed: true`
+- no forbidden source hits in the safety boundary check
+- no private adapter URL/token/endpoint/payload/exploit/scan indicators
+- default adapter mode remains local/stub
+
 ## Explicitly Excluded
 
 - Real exploit code

@@ -40,6 +40,32 @@ under repeated local pressure.
 6. The action registry applies a local state transition only.
 7. Scoring records Red success, Blue defense, SLA preservation, recovery, false positives, and utility.
 
+## Safe Scenario Grammar
+
+The Red side is framed as an adversarial evaluation curriculum, not as an
+attack tool. Each sequence below is composed only from the existing safe event
+set and is evaluated through local simulation.
+
+| Sequence template | Objective | Safe event grammar | Expected Blue response | Primary metric | Failure interpretation |
+| --- | --- | --- | --- | --- | --- |
+| `SLOW_BURN_DEGRADATION` | `SLA_DROP` | repeated `SERVICE_DEGRADATION` with bounded intensity | `RESTART_SERVICE` or `ROLLBACK_VERSION` | `avg_sla_drop`, `red_success_score` | Mission availability can degrade before recovery succeeds |
+| `TELEMETRY_DRIFT` | `RECOVERY_PRESSURE` | repeated `TELEMETRY_INCONSISTENCY` | `ISOLATE_TELEMETRY_STREAM` | `recovery_delta`, rolling SLA | Correct isolation may still be too slow under pressure |
+| `NOISE_THEN_PRESSURE` | `CONFUSION` -> `RECOVERY_PRESSURE` | `LOG_NOISE`, `LOG_NOISE`, then pressure event | `OBSERVE_ONLY`, then event-specific action | false-positive rate, recovery failure | Blue should ignore noise but retain context for later pressure |
+| `MIXED_SAFE_SEQUENCE` | `BLUE_MISMATCH` | `TRAFFIC_SPIKE`, `AUTH_ANOMALY`, `MISSION_COMMAND_ANOMALY`, `SERVICE_DEGRADATION` | rate limit, token containment, decoy/escalation, recovery | `blue_mismatch`, action match | Latest-event logic must avoid stale-history mistakes |
+| `COVERAGE_SWEEP` | `COVERAGE` | one pass over all six safe event types | event-specific expected response | coverage score, scenario entropy | The curriculum is too narrow if scenario coverage is low |
+
+## Objective Transition Logic
+
+Red objective selection is adaptive but still safe and local-only:
+
+| Condition | Objective transition | Rationale |
+| --- | --- | --- |
+| Scenario coverage is incomplete | any objective -> `COVERAGE` | Avoid overfitting the self-play loop to one event family |
+| SLA or rolling SLA is already low | `SLA_DROP` -> `RECOVERY_PRESSURE` | Exercise recovery without increasing unsafe behavior |
+| Recent false-positive penalty appears | any objective -> `CONFUSION` | Check whether Blue overreacts to benign local noise |
+| Blue action matching is consistently strong | `COVERAGE` -> `BLUE_MISMATCH` | Test whether event-specific action selection remains stable |
+| Hard mode shows delayed recovery | `SLA_DROP` -> `RECOVERY_PRESSURE` | Separate action correctness from mission recovery success |
+
 ## Expected Blue Response
 
 | Red event | Expected Blue response |

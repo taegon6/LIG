@@ -12,6 +12,16 @@ This MVP asks three practical questions:
 - Can a Blue Agent select an action that balances risk reduction with SLA and mission continuity?
 - Can a Commander Agent adjust the self-play mode when recovery, hardening, or exploration is more important?
 
+## What Is Being Evaluated
+
+This project evaluates mission-defense decision quality, not offensive
+execution capability. The Red side is an objective-driven local scenario
+generator that creates safe anomaly pressure across SLA drop, Blue mismatch,
+confusion, recovery pressure, and coverage objectives. The Blue side is
+evaluated on action match, SLA preservation, recovery behavior, false-positive
+avoidance, and total utility. All evidence is generated through local simulation
+and reproducible scripts.
+
 ## DAH Preliminary Rubric Alignment
 
 ### Attack Scenario Design, 30 pts
@@ -298,12 +308,13 @@ Hard mode was added because normal self-play, balanced evaluation, and stress sc
 | Minimum rolling SLA 50 | 14.29 |
 | Average recovery delta | 1.00 |
 | Recovery failure rate | 0.71 |
-| Blue success rate | 1.00 |
+| Mission recovery success rate | 0.29 |
+| Action match rate | 1.00 |
 | Red success rate | 0.72 |
 | False positive rate | 0.00 |
 | Average utility | 40.23 |
 
-Interpretation: the Blue Agent often selected the expected action, but hard mode shows that correct action selection is not the same as guaranteed recovery. Under sustained simulated pressure, `RESTART_SERVICE`, `ISOLATE_TELEMETRY_STREAM`, and `APPLY_RATE_LIMIT` can still produce delayed or partial recovery. This is the main honest limitation exposed by the hard-mode evidence.
+Interpretation: `Action match rate` measures whether Blue selected the expected action class, while `Mission recovery success rate` measures whether SLA recovered after the action. Hard mode shows that correct action selection is not the same as guaranteed recovery. Under sustained simulated pressure, `RESTART_SERVICE`, `ISOLATE_TELEMETRY_STREAM`, and `APPLY_RATE_LIMIT` can still produce delayed or partial recovery. This is the main honest limitation exposed by the hard-mode evidence.
 
 Failure analysis is documented separately in `docs/failure_analysis.md`. It covers five local simulated hard-mode cases:
 

@@ -1,2 +1,2 @@
-average_sla,min_rolling_sla_10,min_rolling_sla_50,average_recovery_delta,recovery_failure_rate,blue_success_rate,red_success_rate,false_positive_rate,average_utility
-29.0,10.0,14.29,1.0,0.71,1.0,0.72,0.0,40.23
+average_sla,min_rolling_sla_10,min_rolling_sla_50,average_recovery_delta,recovery_failure_rate,mission_recovery_success_rate,action_match_rate,blue_success_rate,red_success_rate,false_positive_rate,average_utility
+29.0,10.0,14.29,1.0,0.71,0.29,1.0,1.0,0.72,0.0,40.23
