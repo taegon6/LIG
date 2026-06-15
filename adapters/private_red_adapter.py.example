@@ -28,6 +28,17 @@ class PrivateRedAdapterExample:
             "description": "Public example does not observe an outside runtime.",
         }
 
+    def list_allowed_red_actions(self) -> list[str]:
+        return [
+            "OBSERVE_TARGET_STATE",
+            "SELECT_ALLOWED_TARGET",
+            "SUBMIT_ALLOWED_RED_ACTION",
+            "REQUEST_SCORE_FEEDBACK",
+            "PRESSURE_SLA_TARGET",
+            "CONFUSE_DEFENSE_SIGNAL",
+            "COVERAGE_PROBE",
+        ]
+
     def plan_allowed_red_action(self, context: dict[str, Any]) -> dict[str, Any]:
         return {
             "red_objective": "COVERAGE",
@@ -44,4 +55,11 @@ class PrivateRedAdapterExample:
             "external_access": False,
             "description": "Public example records no outside action.",
             "action_keys": sorted(action.keys()),
+        }
+
+    def get_red_feedback(self) -> dict[str, float]:
+        return {
+            "red_success_score": 0.0,
+            "sla_pressure": 0.0,
+            "coverage": 0.0,
         }

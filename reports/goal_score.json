@@ -29,7 +29,7 @@
     {
       "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -m pytest",
       "passed": true,
-      "details": "tests\\test_red_readiness.py ....                                         [ 72%]\ntests\\test_rolling_metrics.py ..                                         [ 75%]\ntests\\test_scenario_stats.py ....                                        [ 82%]\ntests\\test_scoring.py ......                                             [ 91%]\ntests\\test_sla.py ..                                                     [ 95%]\ntests\\test_stress_scenarios.py ...                                       [100%]\n\n============================= 62 passed in 12.87s ============================="
+      "details": "tests\\test_red_readiness.py ....                                         [ 75%]\ntests\\test_rolling_metrics.py ..                                         [ 78%]\ntests\\test_scenario_stats.py ....                                        [ 84%]\ntests\\test_scoring.py ......                                             [ 92%]\ntests\\test_sla.py ..                                                     [ 95%]\ntests\\test_stress_scenarios.py ...                                       [100%]\n\n============================= 69 passed in 14.59s ============================="
     },
     {
       "name": "C:\\Users\\User\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe scripts/run_experiments.py --rounds 100 --seed 42",
@@ -64,7 +64,7 @@
     {
       "name": "red_readiness",
       "passed": true,
-      "details": "{\"plan\": {\"red_objective\": \"COVERAGE\", \"event_type\": \"SERVICE_DEGRADATION\", \"intensity\": 0.53, \"strategy_reason\": \"Prefer under-sampled safe scenarios to avoid overfitting the self-play loop.\", \"expected_effect\": \"Improve scenario coverage across the complete safe event set.\"}, \"objective_names\": [\"BLUE_MISMATCH\", \"CONFUSION\", \"COVERAGE\", \"RECOVERY_PRESSURE\", \"SLA_DROP\"], \"objective_events\": [\"AUTH_ANOMALY\", \"LOG_NOISE\", \"MISSION_COMMAND_ANOMALY\", \"SERVICE_DEGRADATION\", \"TELEMETRY_INCONSISTENCY\", \"TRAFFIC_SPIKE\"], \"stats_status\": 200, \"stats_keys\": [\"average_recent_red_success_score\", \"coverage_score\", \"external_access\", \"local_only\", \"most_effective_objective\", \"red_objectives\", \"red_strategy_stats\", \"safe_event_types\", \"scenario_entropy\", \"scenario_stats\", \"total_attempts\", \"total_objective_attempts\"]}"
+      "details": "{\"plan\": {\"red_objective\": \"COVERAGE\", \"event_type\": \"TELEMETRY_INCONSISTENCY\", \"intensity\": 0.5, \"strategy_reason\": \"Prefer under-sampled safe scenarios to avoid overfitting the self-play loop.\", \"expected_effect\": \"Improve scenario coverage across the complete safe event set.\"}, \"objective_names\": [\"BLUE_MISMATCH\", \"CONFUSION\", \"COVERAGE\", \"RECOVERY_PRESSURE\", \"SLA_DROP\"], \"objective_events\": [\"AUTH_ANOMALY\", \"LOG_NOISE\", \"MISSION_COMMAND_ANOMALY\", \"SERVICE_DEGRADATION\", \"TELEMETRY_INCONSISTENCY\", \"TRAFFIC_SPIKE\"], \"stats_status\": 200, \"stats_keys\": [\"average_recent_red_success_score\", \"coverage_score\", \"external_access\", \"local_only\", \"most_effective_objective\", \"red_objectives\", \"red_strategy_stats\", \"safe_event_types\", \"scenario_entropy\", \"scenario_stats\", \"total_attempts\", \"total_objective_attempts\"]}"
     },
     {
       "name": "blue_readiness",
@@ -90,8 +90,8 @@
   "red_evidence": {
     "plan": {
       "red_objective": "COVERAGE",
-      "event_type": "SERVICE_DEGRADATION",
-      "intensity": 0.53,
+      "event_type": "TELEMETRY_INCONSISTENCY",
+      "intensity": 0.5,
       "strategy_reason": "Prefer under-sampled safe scenarios to avoid overfitting the self-play loop.",
       "expected_effect": "Improve scenario coverage across the complete safe event set."
     },

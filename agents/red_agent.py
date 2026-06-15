@@ -6,6 +6,7 @@ from typing import Any
 
 from agents.red_objectives import RED_OBJECTIVES, RedObjectiveName, objective_for_event
 from core.event_schema import AttackEventType, CommanderMode, SimulatedEvent
+from core.red_action_schema import RedActionPlan, RedActionType
 from simulator.event_generator import choose_scenario_for_mode, generate_event
 from simulator.scenarios import SAFE_SCENARIOS
 
@@ -89,6 +90,36 @@ class RedAgent:
             strategy_reason=objective.strategy_reason,
             expected_effect=objective.expected_effect,
             event=event,
+        )
+
+    def plan_official_red_action(self, context: dict[str, Any] | None = None) -> RedActionPlan:
+        context = context or {}
+        commander_mode = str(context.get("commander_mode", "BALANCED"))
+        if commander_mode not in {"BALANCED", "RECOVERY_FIRST", "DEFENSE_HARDENING", "RED_EXPLORATION"}:
+            commander_mode = "BALANCED"
+        current_sla = float(context.get("current_sla", 100.0))
+        recent_scores = context.get("recent_scores") if isinstance(context.get("recent_scores"), list) else []
+        scenario_stats = context.get("scenario_stats") if isinstance(context.get("scenario_stats"), list) else []
+        red_strategy_stats = (
+            context.get("red_strategy_stats") if isinstance(context.get("red_strategy_stats"), list) else []
+        )
+
+        red_objective = self.choose_objective(
+            commander_mode,  # type: ignore[arg-type]
+            recent_scores,
+            current_sla,
+            scenario_stats,
+            red_strategy_stats,
+        )
+        allowed_actions = context.get("allowed_actions")
+        allowed_action_type = self._action_for_objective(red_objective, allowed_actions)
+        objective = RED_OBJECTIVES[red_objective]
+        return RedActionPlan(
+            red_objective=red_objective,
+            allowed_action_type=allowed_action_type,
+            strategy_reason=objective.strategy_reason,
+            expected_effect=objective.expected_effect,
+            estimated_score_effect=self._estimated_score_effect(red_objective, recent_scores),
         )
 
     def choose_objective(
@@ -235,3 +266,43 @@ class RedAgent:
         if commander_mode == "RED_EXPLORATION":
             return self.rng.uniform(0.35, 0.75)
         return self.rng.uniform(0.45, 0.7)
+
+    def _action_for_objective(
+        self,
+        objective_name: RedObjectiveName,
+        allowed_actions: Any,
+    ) -> RedActionType:
+        preferred: dict[RedObjectiveName, RedActionType] = {
+            "SLA_DROP": "PRESSURE_SLA_TARGET",
+            "BLUE_MISMATCH": "SELECT_ALLOWED_TARGET",
+            "CONFUSION": "CONFUSE_DEFENSE_SIGNAL",
+            "RECOVERY_PRESSURE": "PRESSURE_SLA_TARGET",
+            "COVERAGE": "COVERAGE_PROBE",
+        }
+        action = preferred[objective_name]
+        if isinstance(allowed_actions, list) and allowed_actions:
+            allowed = {str(item) for item in allowed_actions}
+            if action not in allowed:
+                for fallback in ("OBSERVE_TARGET_STATE", "REQUEST_SCORE_FEEDBACK", "SELECT_ALLOWED_TARGET"):
+                    if fallback in allowed:
+                        return fallback  # type: ignore[return-value]
+        return action
+
+    def _estimated_score_effect(
+        self,
+        objective_name: RedObjectiveName,
+        recent_scores: list[dict[str, Any]] | None,
+    ) -> float:
+        baseline = {
+            "SLA_DROP": 35.0,
+            "BLUE_MISMATCH": 25.0,
+            "CONFUSION": 20.0,
+            "RECOVERY_PRESSURE": 40.0,
+            "COVERAGE": 15.0,
+        }[objective_name]
+        if not recent_scores:
+            return baseline
+        avg_red_success = sum(
+            float(row.get("red_success_score", row.get("attack_score", 0.0))) for row in recent_scores
+        ) / len(recent_scores)
+        return round(max(0.0, min(100.0, (baseline + avg_red_success) / 2)), 2)

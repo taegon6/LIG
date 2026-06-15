@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import FastAPI, Query
+from fastapi import Body, FastAPI, Query
 
 from adapters import get_adapter
+from adapters.mock_official_runtime import MockOfficialRuntime
 from agents.blue_agent import BlueAgent
 from agents.commander_agent import CommanderAgent
 from agents.red_agent import RedAgent
@@ -12,6 +13,7 @@ from agents.red_objectives import RED_OBJECTIVES
 from core.action_registry import apply_action_to_state, build_action_record
 from core.event_schema import BlueDecision, SimulateEventRequest, SimulatedEvent, VehicleCommandRequest, now_iso
 from core.knowledge_mapping import round_knowledge_mapping
+from core.red_action_schema import RedActionPlan, RedActionResult
 from core.scoring import action_matches_event, score_round
 from core.sla import calculate_sla
 from mission_service import db
@@ -257,6 +259,41 @@ def stats_red() -> dict[str, Any]:
         "scenario_entropy": scenario_summary["scenario_entropy"],
         "total_attempts": scenario_summary["total_attempts"],
     }
+
+
+def red_planning_context(context: dict[str, Any] | None = None) -> dict[str, Any]:
+    provided = dict(context or {})
+    provided.setdefault("commander_mode", COMMANDER_MODE)
+    provided.setdefault("current_sla", current_sla())
+    provided.setdefault("recent_scores", db.recent_scores(10))
+    provided.setdefault("scenario_stats", db.scenario_stats())
+    provided.setdefault("red_strategy_stats", db.red_strategy_stats())
+    return provided
+
+
+@app.post("/red/plan")
+def red_plan(context: dict[str, Any] | None = Body(default=None)) -> dict[str, Any]:
+    runtime = MockOfficialRuntime()
+    planning_context = red_planning_context(context)
+    planning_context.setdefault("allowed_actions", runtime.list_allowed_red_actions())
+    plan = RedAgent().plan_official_red_action(planning_context)
+    return {
+        "red_objective": plan.red_objective,
+        "allowed_action_type": plan.allowed_action_type,
+        "strategy_reason": plan.strategy_reason,
+        "expected_effect": plan.expected_effect,
+        "estimated_score_effect": plan.estimated_score_effect,
+        "safety_status": plan.safety_status,
+    }
+
+
+@app.post("/red/mock/execute", response_model=RedActionResult)
+def red_mock_execute(context: dict[str, Any] | None = Body(default=None)) -> RedActionResult:
+    runtime = MockOfficialRuntime()
+    planning_context = red_planning_context(context)
+    planning_context["allowed_actions"] = runtime.list_allowed_red_actions()
+    plan: RedActionPlan = RedAgent().plan_official_red_action(planning_context)
+    return runtime.submit_allowed_red_action(plan)
 
 
 @app.post("/simulate/event")
