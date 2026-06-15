@@ -12,6 +12,49 @@ This MVP asks three practical questions:
 - Can a Blue Agent select an action that balances risk reduction with SLA and mission continuity?
 - Can a Commander Agent adjust the self-play mode when recovery, hardening, or exploration is more important?
 
+## DAH Preliminary Rubric Alignment
+
+### Attack Scenario Design, 30 pts
+
+Aegis-Swarm v2 now treats Red as a safe strategy agent rather than a random event
+generator. Red chooses one objective from `SLA_DROP`, `BLUE_MISMATCH`,
+`CONFUSION`, `RECOVERY_PRESSURE`, and `COVERAGE`, then maps that objective to
+one of the six approved local-only event types. The system records
+`red_objective`, `red_strategy_reason`, `expected_effect`, `blue_mismatch`, and
+`red_success_score` in self-play and experiment evidence.
+
+Attack-side evidence is available through:
+
+- `agents/red_objectives.py`
+- `GET /stats/red`
+- `reports/round_metrics.csv`
+- `reports/hard_mode_round_metrics.csv`
+- `docs/attack_scenario_design.md`
+- `docs/red_strategy_analysis.md`
+
+### Defense Strategy, 25 pts
+
+Blue uses modular event-specific policy, SLA-aware action selection, recovery
+health checks, false-positive handling, balanced evaluation, stress scenarios,
+hard mode, and failure analysis.
+
+### AI Agent Architecture, 25 pts
+
+The architecture includes Red/Blue/Commander agents, self-play, scenario memory,
+Red objective memory, scoring, ablation, multi-seed evaluation, dashboard, and
+adapter boundaries.
+
+### Team Capability, 10 pts
+
+`docs/team_capability.md` maps attack, defense, AI, full-stack/infrastructure,
+and execution responsibilities to concrete project artifacts.
+
+### Document Completeness, 10 pts
+
+The submission package includes a one-page summary, report, experiment results,
+failure analysis, attack scenario design, Red strategy analysis, judge Q&A, demo
+flow, safety statement, private adapter plan, and checklist.
+
 ## Why SLA-Aware Defense Matters
 
 In mission-oriented systems, availability is part of security. A simulated `SERVICE_DEGRADATION` should trigger recovery-oriented behavior, while a simulated `AUTH_ANOMALY` should trigger token containment instead of restarting the mission service. Aegis-Swarm therefore scores both defensive correctness and post-action SLA.
@@ -173,9 +216,9 @@ The adaptive self-play experiment lets the Commander and Red Agent change scenar
 | --- | ---: |
 | Rounds | 100 |
 | Average SLA | 100.00 |
-| Average SLA Drop | 7.54 |
-| Average Recovery Delta | 8.00 |
-| Average Utility | 70.73 |
+| Average SLA Drop | 2.98 |
+| Average Recovery Delta | 3.00 |
+| Average Utility | 71.05 |
 | False Positive Rate | 0.000 |
 | Recovery Success Rate | 1.000 |
 | Coverage Score | 100.00 |
@@ -184,14 +227,14 @@ Per-scenario distribution in the adaptive run:
 
 | Scenario | Attempts | Action Accuracy | Average SLA | False Positive Rate | Recovery Success Rate |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| AUTH_ANOMALY | 3 | 1.000 | 100.00 | 0.000 | 1.000 |
-| LOG_NOISE | 51 | 1.000 | 100.00 | 0.000 | 1.000 |
-| MISSION_COMMAND_ANOMALY | 2 | 1.000 | 100.00 | 0.000 | 1.000 |
-| SERVICE_DEGRADATION | 36 | 1.000 | 100.00 | 0.000 | 1.000 |
-| TELEMETRY_INCONSISTENCY | 4 | 1.000 | 100.00 | 0.000 | 1.000 |
-| TRAFFIC_SPIKE | 4 | 1.000 | 100.00 | 0.000 | 1.000 |
+| AUTH_ANOMALY | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
+| LOG_NOISE | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
+| MISSION_COMMAND_ANOMALY | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
+| SERVICE_DEGRADATION | 17 | 1.000 | 100.00 | 0.000 | 1.000 |
+| TELEMETRY_INCONSISTENCY | 16 | 1.000 | 100.00 | 0.000 | 1.000 |
+| TRAFFIC_SPIKE | 16 | 1.000 | 100.00 | 0.000 | 1.000 |
 
-Honest interpretation: adaptive self-play concentrated heavily on `LOG_NOISE` and `SERVICE_DEGRADATION` in this seeded run. That is expected behavior for a memory-guided heuristic loop, but it is not enough by itself to prove per-scenario stability. This is why the balanced scenario evaluation was added.
+Honest interpretation: after Red objective modeling, adaptive self-play uses `COVERAGE` to avoid the earlier over-concentration on `LOG_NOISE` and `SERVICE_DEGRADATION`. This improves attack scenario design evidence, but balanced evaluation remains necessary because adaptive policy can still shift scenario mix in other seeds.
 
 ## Ablation Study
 

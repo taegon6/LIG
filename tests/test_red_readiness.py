@@ -42,6 +42,8 @@ def test_selfplay_round_includes_red_strategy_fields() -> None:
     assert body["red_strategy_reason"]
     assert body["expected_effect"]
     assert "red_success_score" in body
+    assert "red_strategy_stat" in body
+    assert body["red_strategy_stat"]["objective"] == body["red_objective"]
     assert body["red_strategy"]["event_type"] in SAFE_SCENARIOS
 
 
@@ -57,4 +59,7 @@ def test_stats_red_endpoint_reports_objectives_and_memory() -> None:
     assert set(body["red_objectives"]) == set(RED_OBJECTIVES)
     assert set(body["safe_event_types"]) == set(SAFE_SCENARIOS)
     assert "scenario_stats" in body
+    assert "red_strategy_stats" in body
+    assert "total_objective_attempts" in body
+    assert "most_effective_objective" in body
     assert "coverage_score" in body

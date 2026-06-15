@@ -9,8 +9,9 @@ is not acceptable in a defense competition setting.
 ## Proposed Solution
 
 Aegis-Swarm v2 is a safe local Red/Blue/Commander self-play simulator. Red
-generates only synthetic local anomaly events, Blue selects SLA-aware defensive
-actions, and Commander balances recovery, hardening, and exploration.
+selects an attack objective and generates only synthetic local anomaly events,
+Blue selects SLA-aware defensive actions, and Commander balances recovery,
+hardening, and exploration.
 
 ## 5-Line Architecture Summary
 
@@ -28,6 +29,20 @@ actions, and Commander balances recovery, hardening, and exploration.
 | Balanced evaluation | 6 safe scenarios x 20 attempts, action accuracy 1.000 for every scenario |
 | Multi-seed evaluation | 5 seeds x 100 rounds, mean average SLA 100.000, mean false positive rate 0.000 |
 | Hard mode | 100 rounds, average SLA 29.00, recovery failure rate 0.71, red success rate 0.72 |
+
+## Red Agent Attack Objective Summary
+
+Red uses five safe objectives: `SLA_DROP`, `BLUE_MISMATCH`, `CONFUSION`,
+`RECOVERY_PRESSURE`, and `COVERAGE`. Each objective maps only to the approved
+local event set: traffic spike, auth anomaly, telemetry inconsistency, service
+degradation, mission command anomaly, and log noise.
+
+## Attack Scenario Design Evidence
+
+The public evidence includes `/stats/red`, `reports/round_metrics.csv`,
+`reports/hard_mode_round_metrics.csv`, `docs/attack_scenario_design.md`, and
+`docs/red_strategy_analysis.md`. Each self-play round reports Red objective,
+strategy reason, expected effect, Blue mismatch status, and Red success score.
 
 ## Normal Self-Play Result
 
@@ -60,14 +75,15 @@ fail under sustained local pressure. See `docs/failure_analysis.md`.
 Aegis-Swarm v2 does not implement real offensive cyber behavior. It performs no
 exploit execution, scanning, brute force, credential theft, malware behavior,
 real service restart, firewall change, or interaction with external targets.
-All Red behavior is a local synthetic event inserted into SQLite.
+All Red behavior is local synthetic simulation data inserted into SQLite.
 
 ## Official Competition / Private Adapter Plan
 
-The public repository includes a local simulator adapter and a non-networked
-competition stub. Official runtime integration should be done through a private
-adapter that maps competition APIs to the same interface without publishing
-private endpoints, credentials, or competition secrets.
+The public repository includes a local simulator adapter, a non-networked
+competition stub, and an inert private Red adapter template. Official runtime
+integration should be done through a private adapter that maps competition APIs
+to the same interface without publishing private endpoints, credentials, or
+competition secrets.
 
 ## Limitations
 

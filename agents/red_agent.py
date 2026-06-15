@@ -42,8 +42,15 @@ class RedAgent:
         recent_scores: list[dict[str, Any]] | None = None,
         current_sla: float = 100.0,
         scenario_stats: list[dict[str, Any]] | None = None,
+        red_strategy_stats: list[dict[str, Any]] | None = None,
     ) -> SimulatedEvent:
-        return self.generate_plan(commander_mode, recent_scores, current_sla, scenario_stats).event
+        return self.generate_plan(
+            commander_mode,
+            recent_scores,
+            current_sla,
+            scenario_stats,
+            red_strategy_stats,
+        ).event
 
     def generate_plan(
         self,
@@ -51,8 +58,22 @@ class RedAgent:
         recent_scores: list[dict[str, Any]] | None = None,
         current_sla: float = 100.0,
         scenario_stats: list[dict[str, Any]] | None = None,
+        red_strategy_stats: list[dict[str, Any]] | None = None,
     ) -> RedStrategyPlan:
-        scenario, intensity = self.choose_scenario(commander_mode, current_sla, scenario_stats)
+        objective_name = self.choose_objective(
+            commander_mode,
+            recent_scores,
+            current_sla,
+            scenario_stats,
+            red_strategy_stats,
+        )
+        scenario, intensity = self.choose_scenario_for_objective(
+            objective_name,
+            commander_mode,
+            current_sla,
+            scenario_stats,
+            red_strategy_stats,
+        )
         if current_sla < 90 or commander_mode == "RECOVERY_FIRST":
             intensity = min(intensity, 0.35)
         if recent_scores:
@@ -60,7 +81,6 @@ class RedAgent:
             if latest_utility > 85 and commander_mode != "RECOVERY_FIRST":
                 intensity = min(0.95, intensity + 0.1)
         event = generate_event(scenario, intensity)
-        objective_name = self._objective_for_choice(scenario, commander_mode, current_sla, scenario_stats)
         objective = RED_OBJECTIVES[objective_name]
         return RedStrategyPlan(
             red_objective=objective.name,
@@ -70,6 +90,92 @@ class RedAgent:
             expected_effect=objective.expected_effect,
             event=event,
         )
+
+    def choose_objective(
+        self,
+        commander_mode: CommanderMode,
+        recent_scores: list[dict[str, Any]] | None = None,
+        current_sla: float = 100.0,
+        scenario_stats: list[dict[str, Any]] | None = None,
+        red_strategy_stats: list[dict[str, Any]] | None = None,
+    ) -> RedObjectiveName:
+        if commander_mode == "RED_EXPLORATION":
+            return "COVERAGE"
+        if commander_mode == "DEFENSE_HARDENING":
+            return "RECOVERY_PRESSURE"
+        if current_sla < 90 or commander_mode == "RECOVERY_FIRST":
+            return "RECOVERY_PRESSURE"
+
+        attempted = {str(row.get("event_type")) for row in scenario_stats or [] if int(row.get("attempts", 0)) > 0}
+        if len(attempted) < len(SAFE_SCENARIOS):
+            return "COVERAGE"
+
+        score_window = recent_scores or []
+        if score_window:
+            avg_red_success = sum(float(row.get("red_success_score", row.get("attack_score", 0.0))) for row in score_window) / len(score_window)
+            avg_blue_defense = sum(float(row.get("blue_defense_score", row.get("defense_score", 0.0))) for row in score_window) / len(score_window)
+            avg_sla_score = sum(float(row.get("sla_score", 100.0)) for row in score_window) / len(score_window)
+            false_positive_seen = any(float(row.get("false_positive_penalty", 0.0)) > 0.0 for row in score_window)
+            if false_positive_seen:
+                return "CONFUSION"
+            if avg_sla_score < 95 or avg_red_success >= 45:
+                return "RECOVERY_PRESSURE"
+            if avg_blue_defense >= 90 and avg_red_success < 20:
+                return "BLUE_MISMATCH"
+
+        if red_strategy_stats:
+            ranked = sorted(
+                red_strategy_stats,
+                key=lambda row: (
+                    float(row.get("avg_red_success_score", 0.0)),
+                    float(row.get("avg_sla_drop", 0.0)),
+                    float(row.get("avg_total_utility_impact", 0.0)),
+                ),
+                reverse=True,
+            )
+            if ranked and int(ranked[0].get("attempts", 0)) > 0:
+                return str(ranked[0]["objective"])  # type: ignore[return-value]
+
+        return "SLA_DROP"
+
+    def choose_scenario_for_objective(
+        self,
+        objective_name: RedObjectiveName,
+        commander_mode: CommanderMode,
+        current_sla: float = 100.0,
+        scenario_stats: list[dict[str, Any]] | None = None,
+        red_strategy_stats: list[dict[str, Any]] | None = None,
+    ) -> tuple[AttackEventType, float]:
+        objective = RED_OBJECTIVES[objective_name]
+        if objective_name == "COVERAGE" and scenario_stats:
+            attempts_by_event = {
+                str(row.get("event_type")): int(row.get("attempts", 0))
+                for row in scenario_stats
+                if str(row.get("event_type")) in SAFE_SCENARIOS
+            }
+            least_seen = sorted(SAFE_SCENARIOS, key=lambda event: (attempts_by_event.get(event, 0), event))
+            return least_seen[0], self.rng.uniform(0.25, 0.65)
+
+        if red_strategy_stats:
+            for row in red_strategy_stats:
+                if str(row.get("objective")) == objective_name:
+                    event_type = str(row.get("most_effective_event_type") or "")
+                    if event_type in objective.safe_events:
+                        return event_type, self._intensity_for_mode(commander_mode)
+
+        if scenario_stats:
+            ranked = sorted(
+                (
+                    row for row in scenario_stats
+                    if str(row.get("event_type")) in objective.safe_events
+                ),
+                key=self._red_success_rank,
+                reverse=True,
+            )
+            if ranked and int(ranked[0].get("attempts", 0)) > 0:
+                return str(ranked[0]["event_type"]), self._intensity_for_mode(commander_mode)
+
+        return self.rng.choice(objective.safe_events), self._intensity_for_mode(commander_mode)
 
     def choose_scenario(
         self,

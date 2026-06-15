@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agents.blue_agent import BlueAgent
+from agents.red_objectives import RED_OBJECTIVES, objective_for_event
 from core.action_registry import apply_action_to_state, build_action_record
 from core.scoring import ACTION_COSTS, action_matches_event, score_round
 from core.sla import calculate_sla
@@ -80,7 +81,11 @@ HARD_ROUND_COLUMNS = [
     "sequence_name",
     "event_type",
     "severity",
+    "red_objective",
+    "red_strategy_reason",
+    "expected_effect",
     "blue_action",
+    "blue_mismatch",
     "pre_sla",
     "post_event_sla",
     "post_action_sla",
@@ -269,12 +274,23 @@ def run_hard_mode(
         )
         total_utility = adjusted_utility(score, decision.selected_action)
         recovery_failed = post_action_sla < post_event_sla or post_action_sla < 85.0
+        red_objective = objective_for_event(str(saved_event["event_type"]))
+        objective = RED_OBJECTIVES[red_objective]
+        blue_mismatch = not action_matches_event(saved_event, decision.model_dump())
         saved_score = db.insert_score({"timestamp": saved_recovery_event["timestamp"], **score, "total_utility": total_utility})
         db.update_scenario_stats(
             event_type=saved_event["event_type"],
             blue_action=decision.selected_action,
             score=saved_score,
             sla_drop=round(pre_sla - post_event_sla, 2),
+            recovery_delta=recovery_delta,
+        )
+        db.update_red_strategy_stats(
+            objective=red_objective,
+            event_type=saved_event["event_type"],
+            score=saved_score,
+            sla_drop=round(pre_sla - post_event_sla, 2),
+            blue_mismatch=blue_mismatch,
             recovery_delta=recovery_delta,
         )
 
@@ -284,7 +300,11 @@ def run_hard_mode(
                 "sequence_name": pattern_name,
                 "event_type": saved_event["event_type"],
                 "severity": saved_event["severity"],
+                "red_objective": red_objective,
+                "red_strategy_reason": objective.strategy_reason,
+                "expected_effect": objective.expected_effect,
                 "blue_action": decision.selected_action,
+                "blue_mismatch": blue_mismatch,
                 "pre_sla": pre_sla,
                 "post_event_sla": post_event_sla,
                 "post_action_sla": post_action_sla,
@@ -294,7 +314,7 @@ def run_hard_mode(
                 "red_success_score": score["red_success_score"],
                 "blue_defense_score": score["blue_defense_score"],
                 "total_utility": total_utility,
-                "action_match": action_matches_event(saved_event, decision.model_dump()),
+                "action_match": not blue_mismatch,
                 "false_positive": bool(score["false_positive_penalty"] > 0.0),
                 "recovery_failed": recovery_failed,
                 "hard_mode_note": hard_mode_note(

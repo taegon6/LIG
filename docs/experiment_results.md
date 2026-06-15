@@ -10,6 +10,8 @@ The experiment uses FastAPI `TestClient` and a local SQLite experiment database.
 
 Round-level CSVs now include rolling SLA evidence columns:
 
+- `red_objective`, `red_strategy_reason`, `expected_effect`: Red strategy metadata for the simulated local event.
+- `blue_mismatch`: whether Blue selected an action outside the expected local response class.
 - `instant_sla`: post-action SLA for the current round.
 - `rolling_sla_10`: average `instant_sla` over the current and previous 9 rounds.
 - `rolling_sla_50`: average `instant_sla` over the current and previous 49 rounds.
@@ -22,12 +24,12 @@ Round-level CSVs now include rolling SLA evidence columns:
 | Rounds | 100 |
 | Seed | 42 |
 | Average SLA | 100.00 |
-| Average SLA Drop | 7.54 |
-| Average Recovery Delta | 8.00 |
-| Average Utility | 70.73 |
+| Average SLA Drop | 2.98 |
+| Average Recovery Delta | 3.00 |
+| Average Utility | 71.05 |
 | False Positive Rate | 0.000 |
 | Recovery Success Rate | 1.000 |
-| Scenario Entropy | 64.30 |
+| Scenario Entropy | 99.98 |
 | Coverage Score | 100.00 |
 
 ## Early-vs-Late Comparison
@@ -41,12 +43,12 @@ Round-level CSVs now include rolling SLA evidence columns:
 
 | Scenario | Attempts | Average SLA | Average SLA Drop | Average Recovery Delta | Average Utility | Action Accuracy | False Positive Rate | Recovery Success Rate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| AUTH_ANOMALY | 3 | 100.00 | 0.00 | 0.00 | 71.30 | 1.000 | 0.000 | 1.000 |
-| LOG_NOISE | 51 | 100.00 | 0.00 | 0.00 | 72.00 | 1.000 | 0.000 | 1.000 |
-| MISSION_COMMAND_ANOMALY | 2 | 100.00 | 0.00 | 0.00 | 71.35 | 1.000 | 0.000 | 1.000 |
-| SERVICE_DEGRADATION | 36 | 100.00 | 20.94 | 22.22 | 68.76 | 1.000 | 0.000 | 1.000 |
-| TELEMETRY_INCONSISTENCY | 4 | 100.00 | 0.00 | 0.00 | 71.00 | 1.000 | 0.000 | 1.000 |
-| TRAFFIC_SPIKE | 4 | 100.00 | 0.00 | 0.00 | 71.40 | 1.000 | 0.000 | 1.000 |
+| AUTH_ANOMALY | 17 | 100.00 | 0.00 | 0.00 | 71.30 | 1.000 | 0.000 | 1.000 |
+| LOG_NOISE | 17 | 100.00 | 0.00 | 0.00 | 72.00 | 1.000 | 0.000 | 1.000 |
+| MISSION_COMMAND_ANOMALY | 17 | 100.00 | 0.00 | 0.00 | 71.48 | 1.000 | 0.000 | 1.000 |
+| SERVICE_DEGRADATION | 17 | 100.00 | 17.53 | 17.65 | 69.13 | 1.000 | 0.000 | 1.000 |
+| TELEMETRY_INCONSISTENCY | 16 | 100.00 | 0.00 | 0.00 | 71.00 | 1.000 | 0.000 | 1.000 |
+| TRAFFIC_SPIKE | 16 | 100.00 | 0.00 | 0.00 | 71.40 | 1.000 | 0.000 | 1.000 |
 
 ## Balanced Scenario Evaluation
 
@@ -167,11 +169,11 @@ The detailed failure analysis is documented in `docs/failure_analysis.md`. Repre
 
 ## Interpretation for DAH Preliminary Report
 
-The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% while still exercising all six safe simulated scenario types. The service degradation scenario caused the clearest SLA impact, with an average SLA drop of 20.94 points and average recovery delta of 22.22 points. This demonstrates that the post-action `RECOVERY_HEALTH_CHECK` model is measurable rather than decorative.
+The 100-round run shows that Aegis-Swarm v2 maintains post-action SLA at 100% while exercising all six safe simulated scenario types in a much more balanced distribution. The service degradation scenario caused the clearest SLA impact, with an average SLA drop of 17.53 points and average recovery delta of 17.65 points. This demonstrates that the post-action `RECOVERY_HEALTH_CHECK` model is measurable rather than decorative.
 
 False positives remained 0.000 after Blue Agent was hardened to prioritize the latest unrecovered active event while treating `RECOVERY_HEALTH_CHECK` as a boundary for already-handled history. This avoids both stale-event overreaction and passive observation for fresh simulated pressure.
 
-Scenario coverage reached 100%, and scenario entropy reached 64.30. Action accuracy improved to 1.000 for every scenario in this deterministic run, including `TRAFFIC_SPIKE` and `MISSION_COMMAND_ANOMALY`. The remaining improvement target is gathering more samples for low-frequency scenarios and tuning service-degradation scoring so temporary pre-recovery disruption is separated more clearly from final mission recovery.
+Scenario coverage reached 100%, and scenario entropy reached 99.98 after the Red objective model began using `COVERAGE` explicitly. Action accuracy remained 1.000 for every scenario in this deterministic run, including `TRAFFIC_SPIKE` and `MISSION_COMMAND_ANOMALY`. The remaining improvement target is tuning service-degradation scoring so temporary pre-recovery disruption is separated more clearly from final mission recovery.
 
 Aegis-Swarm v2 remains a local simulation. Official DAH runtime integration requires a private adapter that maps competition APIs into the public adapter interface without exposing private endpoints, credentials, or competition-specific secrets.
 

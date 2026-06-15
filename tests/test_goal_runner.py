@@ -33,6 +33,13 @@ def test_private_red_adapter_example_contains_no_disallowed_terms() -> None:
 
     for term in ["http://", "https://", "token", "endpoint", "payload", "exploit", "scan"]:
         assert term not in text
+    for method_name in [
+        "observe_official_state",
+        "plan_allowed_red_action",
+        "submit_allowed_red_action",
+        "adapter_status",
+    ]:
+        assert method_name in text
 
 
 def test_goal_runner_safety_boundary_check_passes() -> None:

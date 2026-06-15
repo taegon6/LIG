@@ -70,6 +70,18 @@ def init_db() -> None:
                 most_effective_blue_action TEXT NOT NULL,
                 last_seen_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS red_strategy_stats (
+                objective TEXT PRIMARY KEY,
+                attempts INTEGER NOT NULL,
+                avg_red_success_score REAL NOT NULL,
+                avg_sla_drop REAL NOT NULL,
+                avg_blue_mismatch_rate REAL NOT NULL,
+                avg_recovery_delta REAL NOT NULL,
+                avg_total_utility_impact REAL NOT NULL,
+                most_effective_event_type TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL
+            );
             """
         )
         score_columns = {row["name"] for row in conn.execute("PRAGMA table_info(scores)").fetchall()}
@@ -316,4 +328,122 @@ def scenario_stats_summary() -> dict[str, Any]:
         "scenario_entropy": scenario_entropy,
         "coverage_score": coverage_score,
         "total_attempts": total_attempts,
+    }
+
+
+def update_red_strategy_stats(
+    objective: str,
+    event_type: str,
+    score: dict[str, Any],
+    sla_drop: float,
+    blue_mismatch: bool,
+    recovery_delta: float,
+) -> dict[str, Any]:
+    red_success_score = float(score.get("red_success_score", score.get("attack_score", 0.0)))
+    total_utility = float(score.get("total_utility", 0.0))
+    utility_impact = max(0.0, 100.0 - total_utility)
+    timestamp = now_iso()
+
+    with get_connection() as conn:
+        existing = conn.execute(
+            "SELECT * FROM red_strategy_stats WHERE objective = ?",
+            (objective,),
+        ).fetchone()
+        if existing is None:
+            conn.execute(
+                """
+                INSERT INTO red_strategy_stats (
+                    objective, attempts, avg_red_success_score, avg_sla_drop,
+                    avg_blue_mismatch_rate, avg_recovery_delta,
+                    avg_total_utility_impact, most_effective_event_type,
+                    last_seen_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    objective,
+                    1,
+                    round(red_success_score, 2),
+                    round(max(0.0, sla_drop), 2),
+                    1.0 if blue_mismatch else 0.0,
+                    round(recovery_delta, 2),
+                    round(utility_impact, 2),
+                    event_type,
+                    timestamp,
+                ),
+            )
+        else:
+            row = dict(existing)
+            previous_attempts = int(row["attempts"])
+            attempts = previous_attempts + 1
+
+            def rolling_average(column: str, value: float) -> float:
+                return round(((float(row[column]) * previous_attempts) + value) / attempts, 2)
+
+            avg_red_success_score = rolling_average("avg_red_success_score", red_success_score)
+            avg_sla_drop = rolling_average("avg_sla_drop", max(0.0, sla_drop))
+            avg_blue_mismatch_rate = rolling_average("avg_blue_mismatch_rate", 1.0 if blue_mismatch else 0.0)
+            avg_recovery_delta = rolling_average("avg_recovery_delta", recovery_delta)
+            avg_total_utility_impact = rolling_average("avg_total_utility_impact", utility_impact)
+            most_effective_event_type = (
+                event_type
+                if red_success_score >= float(row["avg_red_success_score"])
+                else str(row["most_effective_event_type"] or event_type)
+            )
+            conn.execute(
+                """
+                UPDATE red_strategy_stats
+                SET attempts = ?,
+                    avg_red_success_score = ?,
+                    avg_sla_drop = ?,
+                    avg_blue_mismatch_rate = ?,
+                    avg_recovery_delta = ?,
+                    avg_total_utility_impact = ?,
+                    most_effective_event_type = ?,
+                    last_seen_at = ?
+                WHERE objective = ?
+                """,
+                (
+                    attempts,
+                    avg_red_success_score,
+                    avg_sla_drop,
+                    avg_blue_mismatch_rate,
+                    avg_recovery_delta,
+                    avg_total_utility_impact,
+                    most_effective_event_type,
+                    timestamp,
+                    objective,
+                ),
+            )
+        conn.commit()
+        saved = conn.execute("SELECT * FROM red_strategy_stats WHERE objective = ?", (objective,)).fetchone()
+    return dict(saved)
+
+
+def red_strategy_stats() -> list[dict[str, Any]]:
+    with get_connection() as conn:
+        rows = conn.execute("SELECT * FROM red_strategy_stats ORDER BY objective").fetchall()
+    return _rows_to_dicts(rows)
+
+
+def red_strategy_stats_summary() -> dict[str, Any]:
+    rows = red_strategy_stats()
+    total_attempts = sum(int(row["attempts"]) for row in rows)
+    if not rows:
+        return {
+            "red_strategy_stats": [],
+            "total_objective_attempts": 0,
+            "most_effective_objective": "",
+        }
+    most_effective = max(
+        rows,
+        key=lambda row: (
+            float(row["avg_red_success_score"]),
+            float(row["avg_sla_drop"]),
+            float(row["avg_total_utility_impact"]),
+        ),
+    )
+    return {
+        "red_strategy_stats": rows,
+        "total_objective_attempts": total_attempts,
+        "most_effective_objective": most_effective["objective"],
     }

@@ -9,6 +9,7 @@ class PrivateRedAdapterExample:
     This example intentionally contains no remote address, no auth material,
     no offensive routine, and no executable interaction with outside systems.
     Keep real competition wiring outside the public repository.
+    Official DAH integration must follow competition rules and remain private.
     """
 
     configured = False
@@ -20,7 +21,14 @@ class PrivateRedAdapterExample:
             "description": "Team-private Red adapter template; public copy is inert.",
         }
 
-    def choose_safe_objective(self, context: dict[str, Any]) -> dict[str, Any]:
+    def observe_official_state(self) -> dict[str, Any]:
+        return {
+            "configured": False,
+            "state_available": False,
+            "description": "Public example does not observe an outside runtime.",
+        }
+
+    def plan_allowed_red_action(self, context: dict[str, Any]) -> dict[str, Any]:
         return {
             "red_objective": "COVERAGE",
             "event_type": "LOG_NOISE",
@@ -28,4 +36,12 @@ class PrivateRedAdapterExample:
             "strategy_reason": "Public template returns a harmless local simulation choice.",
             "expected_effect": "No outside interaction occurs.",
             "context_keys": sorted(context.keys()),
+        }
+
+    def submit_allowed_red_action(self, action: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "accepted": False,
+            "external_access": False,
+            "description": "Public example records no outside action.",
+            "action_keys": sorted(action.keys()),
         }
